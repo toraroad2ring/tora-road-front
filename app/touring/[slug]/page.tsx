@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
+
+import SiteHeader from "@/components/SiteHeader";
 
 type Term = {
   id: number;
@@ -9,6 +12,7 @@ type Term = {
 
 type Post = {
   id: number;
+  slug: string;
   date: string;
   title: {
     rendered: string;
@@ -21,6 +25,7 @@ type Post = {
     hotel?: string;
     road?: string;
     food?: string;
+    map_embed_url?: string;
   };
   _embedded?: {
     "wp:featuredmedia"?: Array<{
@@ -65,9 +70,11 @@ function formatDate(date: string) {
   });
 }
 
-async function getPost(id: string): Promise<Post> {
+async function getPostBySlug(
+  slug: string
+): Promise<Post | null> {
   const res = await fetch(
-    `${process.env.WORDPRESS_API_URL}/posts/${id}?_embed`,
+    `${process.env.WORDPRESS_API_URL}/posts?slug=${encodeURIComponent(slug)}&_embed`,
     {
       cache: "no-store",
     }
@@ -77,17 +84,23 @@ async function getPost(id: string): Promise<Post> {
     throw new Error("Failed to fetch post");
   }
 
-  return res.json();
+  const posts: Post[] = await res.json();
+
+  return posts[0] ?? null;
 }
 
-export default async function PostPage({
+export default async function TouringPostPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ slug: string }>;
 }) {
-  const { id } = await params;
+  const { slug } = await params;
 
-  const post = await getPost(id);
+  const post = await getPostBySlug(slug);
+
+  if (!post) {
+    notFound();
+  }
 
   const featuredImageSource =
     post._embedded?.["wp:featuredmedia"]?.[0]?.source_url;
@@ -101,34 +114,15 @@ export default async function PostPage({
   const contentHtml =
     replaceContentImageUrls(post.content.rendered);
 
+  const mapEmbedUrl =
+    post.meta?.map_embed_url;
+
   return (
     <main className="min-h-screen bg-[#f5f5f2] text-neutral-900">
 
-      <header className="border-b border-black/10">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-6 md:px-10">
+      <SiteHeader />
 
-          <Link href="/">
-            <div>
-              <p className="text-2xl font-black tracking-[0.18em] md:text-3xl">
-                TORA ROAD
-              </p>
-
-              <p className="mt-1 text-[10px] tracking-[0.35em] text-neutral-500 md:text-xs">
-                MOTORCYCLE TOURING JOURNAL
-              </p>
-            </div>
-          </Link>
-
-          <Link
-            href="/"
-            className="text-xs font-semibold tracking-[0.15em] text-neutral-500 hover:text-black"
-          >
-            ← JOURNAL
-          </Link>
-
-        </div>
-      </header>
-
+      {/* HERO */}
       <section className="mx-auto max-w-7xl px-6 pt-8 md:px-10 md:pt-12">
 
         <div className="relative overflow-hidden rounded-[28px] bg-neutral-900">
@@ -172,8 +166,10 @@ export default async function PostPage({
 
       </section>
 
+      {/* ARTICLE */}
       <article className="mx-auto max-w-4xl px-6 py-16 md:py-24">
 
+        {/* RIDE DATA */}
         <section className="mb-16">
 
           <p className="mb-3 text-xs font-bold tracking-[0.3em] text-neutral-500">
@@ -183,6 +179,7 @@ export default async function PostPage({
           <div className="grid overflow-hidden rounded-2xl border border-black/10 bg-white sm:grid-cols-2">
 
             <div className="border-b border-black/10 p-6 sm:border-r">
+
               <p className="text-[10px] font-bold tracking-[0.25em] text-neutral-400">
                 DISTANCE
               </p>
@@ -190,9 +187,11 @@ export default async function PostPage({
               <p className="mt-3 text-xl font-bold">
                 {post.meta?.distance || "-"}
               </p>
+
             </div>
 
             <div className="border-b border-black/10 p-6">
+
               <p className="text-[10px] font-bold tracking-[0.25em] text-neutral-400">
                 HOTEL
               </p>
@@ -200,9 +199,11 @@ export default async function PostPage({
               <p className="mt-3 text-xl font-bold">
                 {post.meta?.hotel || "-"}
               </p>
+
             </div>
 
             <div className="border-b border-black/10 p-6 sm:border-b-0 sm:border-r">
+
               <p className="text-[10px] font-bold tracking-[0.25em] text-neutral-400">
                 ROAD
               </p>
@@ -210,9 +211,11 @@ export default async function PostPage({
               <p className="mt-3 text-xl font-bold">
                 {post.meta?.road || "-"}
               </p>
+
             </div>
 
             <div className="p-6">
+
               <p className="text-[10px] font-bold tracking-[0.25em] text-neutral-400">
                 FOOD
               </p>
@@ -220,12 +223,38 @@ export default async function PostPage({
               <p className="mt-3 text-xl font-bold">
                 {post.meta?.food || "-"}
               </p>
+
             </div>
 
           </div>
 
         </section>
 
+        {/* ROUTE MAP */}
+        {mapEmbedUrl && (
+          <section className="mb-16">
+
+            <p className="mb-3 text-xs font-bold tracking-[0.3em] text-neutral-500">
+              ROUTE MAP
+            </p>
+
+            <div className="overflow-hidden rounded-2xl border border-black/10 bg-white">
+
+              <iframe
+                src={mapEmbedUrl}
+                width="100%"
+                height="480"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                className="block w-full"
+              />
+
+            </div>
+
+          </section>
+        )}
+
+        {/* WORDPRESS BODY */}
         <div
           className="
             text-[17px]
@@ -261,6 +290,23 @@ export default async function PostPage({
             [&_a]:font-medium
             [&_a]:underline
             [&_a]:underline-offset-4
+
+            [&_ul]:my-7
+            [&_ul]:list-disc
+            [&_ul]:pl-6
+
+            [&_ol]:my-7
+            [&_ol]:list-decimal
+            [&_ol]:pl-6
+
+            [&_li]:mb-2
+
+            [&_blockquote]:my-10
+            [&_blockquote]:border-l-4
+            [&_blockquote]:border-neutral-300
+            [&_blockquote]:pl-6
+            [&_blockquote]:italic
+            [&_blockquote]:text-neutral-600
           "
           dangerouslySetInnerHTML={{
             __html: contentHtml,
@@ -269,7 +315,9 @@ export default async function PostPage({
 
       </article>
 
+      {/* BACK */}
       <section className="border-t border-black/10">
+
         <div className="mx-auto max-w-4xl px-6 py-16">
 
           <Link
@@ -284,12 +332,16 @@ export default async function PostPage({
           </Link>
 
         </div>
+
       </section>
 
+      {/* FOOTER */}
       <footer className="bg-neutral-950 text-white">
+
         <div className="mx-auto flex max-w-7xl flex-col gap-8 px-6 py-14 md:flex-row md:items-end md:justify-between md:px-10">
 
           <div>
+
             <p className="text-xl font-black tracking-[0.18em]">
               TORA ROAD
             </p>
@@ -297,6 +349,7 @@ export default async function PostPage({
             <p className="mt-2 text-xs tracking-[0.25em] text-neutral-500">
               MOTORCYCLE TOURING JOURNAL
             </p>
+
           </div>
 
           <p className="text-xs text-neutral-600">
@@ -304,6 +357,7 @@ export default async function PostPage({
           </p>
 
         </div>
+
       </footer>
 
     </main>
