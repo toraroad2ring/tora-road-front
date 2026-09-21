@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Tora Road Meta
  * Description: Tora Roadの記事用カスタムフィールドとDormy Inn管理機能を提供します。
- * Version: 3.0.1
+ * Version: 3.0.2
  */
 
 /**
