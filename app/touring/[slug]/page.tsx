@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -18,6 +19,9 @@ type Post = {
     rendered: string;
   };
   content: {
+    rendered: string;
+  };
+  excerpt?: {
     rendered: string;
   };
   meta?: {
@@ -70,6 +74,39 @@ function formatDate(date: string) {
   });
 }
 
+function stripHtml(html: string) {
+  return html
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&#8211;/g, "–")
+    .replace(/&#8212;/g, "—")
+    .replace(/&#8216;/g, "‘")
+    .replace(/&#8217;/g, "’")
+    .replace(/&#8220;/g, "“")
+    .replace(/&#8221;/g, "”")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function createDescription(post: Post) {
+  const source =
+    post.excerpt?.rendered ||
+    post.content.rendered;
+
+  const text = stripHtml(source);
+
+  if (!text) {
+    return "Tora Roadのモーターサイクルツーリング記録。";
+  }
+
+  return text.length > 120
+    ? `${text.slice(0, 120)}…`
+    : text;
+}
+
 async function getPostBySlug(
   slug: string
 ): Promise<Post | null> {
@@ -87,6 +124,78 @@ async function getPostBySlug(
   const posts: Post[] = await res.json();
 
   return posts[0] ?? null;
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+
+  const post = await getPostBySlug(slug);
+
+  if (!post) {
+    return {
+      title: "記事が見つかりません | Tora Road",
+    };
+  }
+
+  const titleText =
+    stripHtml(post.title.rendered);
+
+  const description =
+    createDescription(post);
+
+  const featuredImageSource =
+    post._embedded?.["wp:featuredmedia"]?.[0]?.source_url;
+
+  const featuredImage =
+    toCloudFrontUrl(featuredImageSource);
+
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    "http://localhost:3000";
+
+  const articleUrl =
+    `${siteUrl}/touring/${post.slug}`;
+
+  return {
+    title: `${titleText} | Tora Road`,
+    description,
+
+    alternates: {
+      canonical: articleUrl,
+    },
+
+    openGraph: {
+      type: "article",
+      locale: "ja_JP",
+      siteName: "Tora Road",
+      title: `${titleText} | Tora Road`,
+      description,
+      url: articleUrl,
+      images: featuredImage
+        ? [
+            {
+              url: featuredImage,
+              alt:
+                post._embedded?.["wp:featuredmedia"]?.[0]?.alt_text ||
+                titleText,
+            },
+          ]
+        : undefined,
+    },
+
+    twitter: {
+      card: "summary_large_image",
+      title: `${titleText} | Tora Road`,
+      description,
+      images: featuredImage
+        ? [featuredImage]
+        : undefined,
+    },
+  };
 }
 
 export default async function TouringPostPage({
