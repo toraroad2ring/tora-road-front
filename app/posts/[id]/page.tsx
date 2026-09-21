@@ -38,10 +38,16 @@ export default async function PostPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+
   const post = await getPost(id);
 
-  const featuredImage =
+  const featuredImageSource =
     post._embedded?.["wp:featuredmedia"]?.[0]?.source_url;
+
+  const featuredImage = featuredImageSource?.replace(
+    "http://18.176.161.200/wp-content/uploads/",
+    "https://d3fqb2te8bdvc5.cloudfront.net/wp-content/uploads/"
+  );
 
   const altText =
     post._embedded?.["wp:featuredmedia"]?.[0]?.alt_text || "";
