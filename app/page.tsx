@@ -17,6 +17,15 @@ type Post = {
   };
 };
 
+function toCloudFrontUrl(url?: string) {
+  if (!url) return undefined;
+
+  return url.replace(
+    /^https?:\/\/[^/]+\/wp-content\/uploads\//,
+    "https://d3fqb2te8bdvc5.cloudfront.net/wp-content/uploads/"
+  );
+}
+
 async function getPosts(): Promise<Post[]> {
   const res = await fetch(
     `${process.env.WORDPRESS_API_URL}/posts?_embed`,
@@ -44,19 +53,15 @@ export default async function Home() {
           const featuredImageSource =
             post._embedded?.["wp:featuredmedia"]?.[0]?.source_url;
 
-          const featuredImage = featuredImageSource?.replace(
-            "http://18.176.161.200/wp-content/uploads/",
-            "https://d3fqb2te8bdvc5.cloudfront.net/wp-content/uploads/"
-          );
+          const featuredImage =
+            toCloudFrontUrl(featuredImageSource);
 
           const altText =
             post._embedded?.["wp:featuredmedia"]?.[0]?.alt_text || "";
 
           return (
-            <article
-              key={post.id}
-              className="border-b pb-10"
-            >
+            <article key={post.id} className="border-b pb-10">
+
               {featuredImage && (
                 <Link href={`/posts/${post.id}`}>
                   <img
@@ -93,6 +98,7 @@ export default async function Home() {
               >
                 続きを読む →
               </Link>
+
             </article>
           );
         })}
