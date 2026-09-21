@@ -18,12 +18,12 @@ type Post = {
 };
 
 async function getPosts(): Promise<Post[]> {
-const res = await fetch(
-  `${process.env.WORDPRESS_API_URL}/posts?_embed`,
-  {
-    cache: "no-store",
-  }
-);
+  const res = await fetch(
+    `${process.env.WORDPRESS_API_URL}/posts?_embed`,
+    {
+      cache: "no-store",
+    }
+  );
 
   if (!res.ok) {
     throw new Error("Failed to fetch posts");
@@ -41,8 +41,13 @@ export default async function Home() {
 
       <div className="grid gap-10">
         {posts.map((post) => {
-          const featuredImage =
+          const featuredImageSource =
             post._embedded?.["wp:featuredmedia"]?.[0]?.source_url;
+
+          const featuredImage = featuredImageSource?.replace(
+            "http://18.176.161.200/wp-content/uploads/",
+            "https://d3fqb2te8bdvc5.cloudfront.net/wp-content/uploads/"
+          );
 
           const altText =
             post._embedded?.["wp:featuredmedia"]?.[0]?.alt_text || "";
