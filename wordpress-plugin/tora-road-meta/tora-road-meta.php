@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Tora Road Meta
  * Description: Tora Roadの記事・旅行記・ツーリング向け宿泊施設データを管理します。
- * Version: 4.0.0
+ * Version: 4.0.1
  */
 
 /**
@@ -85,6 +85,7 @@ add_action('init', function () {
         'single' => true,
         'type' => 'boolean',
     ]);
+
 });
 
 
@@ -156,6 +157,13 @@ add_action('init', function () {
         'show_in_rest' => true,
         'single' => true,
         'type' => 'boolean',
+    ]);
+
+    register_post_meta('dormy_inn', 'article_type', [
+        'show_in_rest' => true,
+        'single' => true,
+        'type' => 'string',
+        'default' => 'touring',
     ]);
 
     register_post_meta('dormy_inn', 'article_slug', [
@@ -894,6 +902,16 @@ function tora_road_render_stay_meta_box($post) {
         true
     );
 
+    $article_type = get_post_meta(
+        $post->ID,
+        'article_type',
+        true
+    );
+
+    if (!$article_type) {
+        $article_type = 'touring';
+    }
+
     $article_slug = get_post_meta(
         $post->ID,
         'article_slug',
@@ -1052,6 +1070,40 @@ function tora_road_render_stay_meta_box($post) {
 
     <div class="tora-road-field">
 
+        <label for="tora_stay_article_type">
+            関連記事タイプ
+        </label>
+
+        <select
+            id="tora_stay_article_type"
+            name="tora_stay_article_type"
+        >
+
+            <option
+                value="touring"
+                <?php selected($article_type, 'touring'); ?>
+            >
+                TOURING
+            </option>
+
+            <option
+                value="travel"
+                <?php selected($article_type, 'travel'); ?>
+            >
+                TRAVEL
+            </option>
+
+        </select>
+
+        <p class="tora-road-help">
+            関連記事がバイク旅ならTOURING、それ以外の旅行ならTRAVELを選択します。
+        </p>
+
+    </div>
+
+
+    <div class="tora-road-field">
+
         <label for="tora_stay_article_slug">
             関連記事スラッグ
         </label>
@@ -1065,7 +1117,7 @@ function tora_road_render_stay_meta_box($post) {
         >
 
         <p class="tora-road-help">
-            touring / travel どちらの記事でも、記事のslugだけを入力します。
+            例：/touring/takasaki-haruna なら takasaki-haruna だけ入力します。
         </p>
 
     </div>
@@ -1129,30 +1181,65 @@ add_action('save_post_dormy_inn', function ($post_id) {
     }
 
 
-    $text_fields = [
-        'area' => 'tora_stay_area',
-        'article_slug' => 'tora_stay_article_slug',
-        'parking_note' => 'tora_stay_parking_note',
-    ];
+    if (isset($_POST['tora_stay_area'])) {
 
-
-    foreach ($text_fields as $meta_key => $form_key) {
-
-        if (isset($_POST[$form_key])) {
-
-            update_post_meta(
-                $post_id,
-                $meta_key,
-                sanitize_textarea_field(
-                    wp_unslash(
-                        $_POST[$form_key]
-                    )
+        update_post_meta(
+            $post_id,
+            'area',
+            sanitize_text_field(
+                wp_unslash(
+                    $_POST['tora_stay_area']
                 )
-            );
-
-        }
+            )
+        );
 
     }
+
+
+    if (isset($_POST['tora_stay_article_slug'])) {
+
+        update_post_meta(
+            $post_id,
+            'article_slug',
+            sanitize_text_field(
+                wp_unslash(
+                    $_POST['tora_stay_article_slug']
+                )
+            )
+        );
+
+    }
+
+
+    if (isset($_POST['tora_stay_parking_note'])) {
+
+        update_post_meta(
+            $post_id,
+            'parking_note',
+            sanitize_textarea_field(
+                wp_unslash(
+                    $_POST['tora_stay_parking_note']
+                )
+            )
+        );
+
+    }
+
+
+    $article_type = 'touring';
+
+    if (
+        isset($_POST['tora_stay_article_type']) &&
+        $_POST['tora_stay_article_type'] === 'travel'
+    ) {
+        $article_type = 'travel';
+    }
+
+    update_post_meta(
+        $post_id,
+        'article_type',
+        $article_type
+    );
 
 
     $allowed_parking_values = [
