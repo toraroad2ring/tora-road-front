@@ -18,12 +18,12 @@ type Post = {
 };
 
 async function getPost(id: string): Promise<Post> {
-const res = await fetch(
-  `${process.env.WORDPRESS_API_URL}/posts/${id}?_embed`,
-  {
-    cache: "no-store",
-  }
-);
+  const res = await fetch(
+    `${process.env.WORDPRESS_API_URL}/posts/${id}?_embed`,
+    {
+      cache: "no-store",
+    }
+  );
 
   if (!res.ok) {
     throw new Error("Failed to fetch post");
@@ -45,6 +45,11 @@ export default async function PostPage({
 
   const altText =
     post._embedded?.["wp:featuredmedia"]?.[0]?.alt_text || "";
+
+  const contentHtml = post.content.rendered.replaceAll(
+    "http://18.176.161.200/wp-content/uploads/",
+    "https://d3fqb2te8bdvc5.cloudfront.net/wp-content/uploads/"
+  );
 
   return (
     <main className="max-w-4xl mx-auto px-6 py-10">
@@ -93,7 +98,7 @@ export default async function PostPage({
             [&_a]:underline
           "
           dangerouslySetInnerHTML={{
-            __html: post.content.rendered,
+            __html: contentHtml,
           }}
         />
       </article>
