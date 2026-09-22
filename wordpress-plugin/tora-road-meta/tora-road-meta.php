@@ -2,8 +2,9 @@
 /**
  * Plugin Name: Tora Road Meta
  * Description: Tora Roadの記事・旅行記・ツーリング向け宿泊施設データを管理します。
- * Version: 4.0.1
+ * Version: 4.0.2
  */
+
 
 /**
  * ---------------------------------------------------------
@@ -18,6 +19,12 @@ add_action('init', function () {
         'single' => true,
         'type' => 'string',
         'default' => 'touring',
+    ]);
+
+    register_post_meta('post', 'journal_date', [
+        'show_in_rest' => true,
+        'single' => true,
+        'type' => 'string',
     ]);
 
     register_post_meta('post', 'distance', [
@@ -116,11 +123,8 @@ add_action('init', function () {
         ],
 
         'public' => true,
-
         'show_ui' => true,
-
         'show_in_menu' => true,
-
         'show_in_rest' => true,
 
         'menu_icon' => 'dashicons-building',
@@ -131,7 +135,6 @@ add_action('init', function () {
         ],
 
         'has_archive' => false,
-
         'rewrite' => false,
 
     ]);
@@ -230,6 +233,12 @@ function tora_road_render_journal_meta_box($post) {
         $journal_type = 'touring';
     }
 
+    $journal_date = get_post_meta(
+        $post->ID,
+        'journal_date',
+        true
+    );
+
     $distance = get_post_meta(
         $post->ID,
         'distance',
@@ -325,10 +334,15 @@ function tora_road_render_journal_meta_box($post) {
 
         .tora-road-field input[type="text"],
         .tora-road-field input[type="url"],
+        .tora-road-field input[type="date"],
         .tora-road-field select,
         .tora-road-field textarea {
             width: 100%;
             max-width: 700px;
+        }
+
+        .tora-road-field input[type="date"] {
+            max-width: 300px;
         }
 
         .tora-road-field textarea {
@@ -352,8 +366,9 @@ function tora_road_render_journal_meta_box($post) {
     <div class="tora-road-section">
 
         <h3 class="tora-road-section-title">
-            JOURNAL TYPE
+            JOURNAL
         </h3>
+
 
         <div class="tora-road-field">
 
@@ -385,6 +400,26 @@ function tora_road_render_journal_meta_box($post) {
 
             <p class="tora-road-help">
                 既存記事や未設定の記事はTOURINGとして扱います。
+            </p>
+
+        </div>
+
+
+        <div class="tora-road-field">
+
+            <label for="tora_journal_date">
+                JOURNAL DATE - 旅した日
+            </label>
+
+            <input
+                type="date"
+                id="tora_journal_date"
+                name="tora_journal_date"
+                value="<?php echo esc_attr($journal_date); ?>"
+            >
+
+            <p class="tora-road-help">
+                WordPressの投稿日ではなく、実際にツーリング・旅行した日を入力します。
             </p>
 
         </div>
@@ -767,6 +802,62 @@ add_action('save_post_post', function ($post_id) {
         'journal_type',
         $journal_type
     );
+
+
+    /*
+     * JOURNAL DATE
+     *
+     * HTML date input から YYYY-MM-DD 形式で受け取ります。
+     * 正しい日付形式の場合のみ保存します。
+     */
+    if (isset($_POST['tora_journal_date'])) {
+
+        $journal_date = sanitize_text_field(
+            wp_unslash(
+                $_POST['tora_journal_date']
+            )
+        );
+
+        if ($journal_date === '') {
+
+            delete_post_meta(
+                $post_id,
+                'journal_date'
+            );
+
+        } else {
+
+            $date_object = DateTime::createFromFormat(
+                'Y-m-d',
+                $journal_date
+            );
+
+            $date_errors = DateTime::getLastErrors();
+
+            $date_is_valid =
+                $date_object !== false &&
+                (
+                    $date_errors === false ||
+                    (
+                        $date_errors['warning_count'] === 0 &&
+                        $date_errors['error_count'] === 0
+                    )
+                ) &&
+                $date_object->format('Y-m-d') === $journal_date;
+
+            if ($date_is_valid) {
+
+                update_post_meta(
+                    $post_id,
+                    'journal_date',
+                    $journal_date
+                );
+
+            }
+
+        }
+
+    }
 
 
     $text_fields = [

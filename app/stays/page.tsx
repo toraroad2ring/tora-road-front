@@ -12,6 +12,7 @@ type Stay = {
   meta?: {
     area?: string;
     visited?: boolean;
+    article_type?: string;
     article_slug?: string;
     large_bath?: boolean;
     motorcycle_parking?: string;
@@ -33,6 +34,14 @@ function getParkingLabel(value?: string) {
     default:
       return "不明";
   }
+}
+
+function getArticleType(value?: string) {
+  if (value === "travel") {
+    return "travel";
+  }
+
+  return "touring";
 }
 
 async function getStays(): Promise<Stay[]> {
@@ -83,7 +92,7 @@ export default async function StaysPage() {
           </h1>
 
           <p className="mt-6 max-w-2xl text-base leading-8 text-neutral-600">
-            ブランドに縛られず、ツーリングで使いやすい宿を記録。
+            ブランドに縛られず、旅で使いやすい宿を記録。
             大浴場やバイク駐車環境など、実際に気になる条件を残します。
           </p>
 
@@ -142,6 +151,16 @@ export default async function StaysPage() {
 
               const articleSlug =
                 stay.meta?.article_slug;
+
+              const articleType =
+                getArticleType(
+                  stay.meta?.article_type
+                );
+
+              const articleHref =
+                articleSlug
+                  ? `/${articleType}/${articleSlug}`
+                  : undefined;
 
               return (
                 <div
@@ -226,10 +245,10 @@ export default async function StaysPage() {
 
                   )}
 
-                  {articleSlug && visited && (
+                  {articleHref && visited && (
 
                     <Link
-                      href={`/touring/${articleSlug}`}
+                      href={articleHref}
                       className="mt-6 inline-flex text-xs font-bold tracking-[0.15em] underline underline-offset-4"
                     >
                       VIEW JOURNAL →
