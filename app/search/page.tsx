@@ -1,6 +1,10 @@
 import Link from "next/link";
 
 import SiteHeader from "@/components/SiteHeader";
+import {
+  formatJournalDate,
+  getJournalStartDate,
+} from "@/lib/journalDate";
 
 type Term = {
   id: number;
@@ -13,27 +17,45 @@ type Post = {
   id: number;
   slug: string;
   date: string;
+
   title: {
     rendered: string;
   };
+
   excerpt: {
     rendered: string;
   };
+
   meta?: {
+    journal_type?: string;
+
+    journal_date?: string;
+    journal_start_date?: string;
+    journal_end_date?: string;
+
     hotel?: string;
     visited?: boolean;
+
+    country?: string;
+    city?: string;
+    event?: string;
+    transport_detail?: string;
   };
+
   _embedded?: {
     "wp:featuredmedia"?: Array<{
       source_url: string;
       alt_text: string;
     }>;
+
     "wp:term"?: Term[][];
   };
 };
 
 function toCloudFrontUrl(url?: string) {
-  if (!url) return undefined;
+  if (!url) {
+    return undefined;
+  }
 
   return url.replace(
     /^https?:\/\/[^/]+\/wp-content\/uploads\//,
@@ -56,11 +78,39 @@ function getAltText(post: Post) {
 }
 
 function getCategory(post: Post) {
-  const terms = post._embedded?.["wp:term"]?.flat() ?? [];
+  const terms =
+    post._embedded?.["wp:term"]?.flat() ?? [];
 
   return terms.find(
     (term) => term.taxonomy === "category"
   );
+}
+
+function getJournalType(post: Post) {
+  if (post.meta?.journal_type === "travel") {
+    return "travel";
+  }
+
+  return "touring";
+}
+
+function getJournalLabel(post: Post) {
+  return getJournalType(post) === "travel"
+    ? "TRAVEL"
+    : "TOURING";
+}
+
+function getPostHref(post: Post) {
+  return `/${getJournalType(post)}/${post.slug}`;
+}
+
+function stripHtml(html: string) {
+  return html
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 async function getPosts(): Promise<Post[]> {
@@ -75,7 +125,17 @@ async function getPosts(): Promise<Post[]> {
     throw new Error("Failed to fetch posts");
   }
 
-  return res.json();
+  const posts: Post[] = await res.json();
+
+  return posts.sort((a, b) => {
+    const dateA =
+      new Date(getJournalStartDate(a)).getTime();
+
+    const dateB =
+      new Date(getJournalStartDate(b)).getTime();
+
+    return dateB - dateA;
+  });
 }
 
 export default async function SearchPage({
@@ -83,6 +143,7 @@ export default async function SearchPage({
 }: {
   searchParams: Promise<{
     q?: string;
+    type?: string;
     area?: string;
     hotel?: string;
     visited?: string;
@@ -90,48 +151,116 @@ export default async function SearchPage({
 }) {
   const params = await searchParams;
 
-  const q = params.q?.trim().toLowerCase() || "";
-  const area = params.area || "";
-  const hotelOnly = params.hotel === "1";
-  const visitedOnly = params.visited === "1";
+  const q =
+    params.q?.trim().toLowerCase() || "";
 
-  const posts = await getPosts();
+  const type =
+    params.type || "";
 
-  const filteredPosts = posts.filter((post) => {
-    const category = getCategory(post);
+  const area =
+    params.area || "";
 
-    const titleText = post.title.rendered.toLowerCase();
-    const excerptText = post.excerpt.rendered.toLowerCase();
+  const hotelOnly =
+    params.hotel === "1";
 
-    const matchesKeyword =
-      !q ||
-      titleText.includes(q) ||
-      excerptText.includes(q);
+  const visitedOnly =
+    params.visited === "1";
 
-    const matchesArea =
-      !area ||
-      category?.slug === area;
+  const posts =
+    await getPosts();
 
-    const matchesHotel =
-      !hotelOnly ||
-      Boolean(post.meta?.hotel);
+  const filteredPosts =
+    posts.filter((post) => {
 
-    const matchesVisited =
-      !visitedOnly ||
-      post.meta?.visited === true;
+      const journalType =
+        getJournalType(post);
 
-    return (
-      matchesKeyword &&
-      matchesArea &&
-      matchesHotel &&
-      matchesVisited
-    );
-  });
+      const category =
+        getCategory(post);
 
+      const titleText =
+        stripHtml(
+          post.title.rendered
+        ).toLowerCase();
+
+      const excerptText =
+        stripHtml(
+          post.excerpt.rendered
+        ).toLowerCase();
+
+      const countryText =
+        post.meta?.country?.toLowerCase() || "";
+
+      const cityText =
+        post.meta?.city?.toLowerCase() || "";
+
+      const eventText =
+        post.meta?.event?.toLowerCase() || "";
+
+      const transportText =
+        post.meta?.transport_detail?.toLowerCase() || "";
+
+      const hotelText =
+        post.meta?.hotel?.toLowerCase() || "";
+
+      const matchesKeyword =
+        !q ||
+        titleText.includes(q) ||
+        excerptText.includes(q) ||
+        countryText.includes(q) ||
+        cityText.includes(q) ||
+        eventText.includes(q) ||
+        transportText.includes(q) ||
+        hotelText.includes(q);
+
+      const matchesType =
+        !type ||
+        journalType === type;
+
+      /*
+       * AREAはTOURINGのカテゴリ用。
+       *
+       * area指定時はTRAVEL記事を除外して、
+       * TOURINGカテゴリだけを比較する。
+       */
+      const matchesArea =
+        !area ||
+        (
+          journalType === "touring" &&
+          category?.slug === area
+        );
+
+      const matchesHotel =
+        !hotelOnly ||
+        Boolean(post.meta?.hotel);
+
+      const matchesVisited =
+        !visitedOnly ||
+        post.meta?.visited === true;
+
+      return (
+        matchesKeyword &&
+        matchesType &&
+        matchesArea &&
+        matchesHotel &&
+        matchesVisited
+      );
+    });
+
+  /*
+   * AREA候補にはTOURING記事のカテゴリだけを使用。
+   * TRAVEL記事のカテゴリが混ざらないようにする。
+   */
   const areas = Array.from(
     new Map(
       posts
-        .map((post) => getCategory(post))
+        .filter(
+          (post) =>
+            getJournalType(post) === "touring"
+        )
+        .map((post) =>
+          getCategory(post)
+        )
         .filter(Boolean)
         .map((category) => [
           category!.slug,
@@ -152,14 +281,16 @@ export default async function SearchPage({
         </p>
 
         <h1 className="text-5xl font-black tracking-tight md:text-7xl">
-          Find a Ride
+          Find a Journal
         </h1>
 
         <p className="mt-8 max-w-2xl text-lg leading-8 text-neutral-600">
-          キーワードや地域からツーリング記録を探す。
+          ツーリングや旅行の記録を、
+          キーワード・記事種別・地域などから探します。
         </p>
 
       </section>
+
 
       <section className="border-y border-black/10 bg-white">
 
@@ -177,11 +308,41 @@ export default async function SearchPage({
                 type="text"
                 name="q"
                 defaultValue={params.q || ""}
-                placeholder="榛名湖、絶景、ラーメン..."
+                placeholder="榛名湖、Las Vegas、ホテル..."
                 className="w-full rounded-xl border border-black/10 bg-[#f5f5f2] px-4 py-3 outline-none focus:border-black"
               />
 
             </div>
+
+
+            <div>
+
+              <label className="mb-2 block text-xs font-bold tracking-[0.2em] text-neutral-500">
+                TYPE
+              </label>
+
+              <select
+                name="type"
+                defaultValue={type}
+                className="w-full rounded-xl border border-black/10 bg-[#f5f5f2] px-4 py-3 outline-none focus:border-black"
+              >
+
+                <option value="">
+                  ALL TYPES
+                </option>
+
+                <option value="touring">
+                  TOURING
+                </option>
+
+                <option value="travel">
+                  TRAVEL
+                </option>
+
+              </select>
+
+            </div>
+
 
             <div>
 
@@ -194,6 +355,7 @@ export default async function SearchPage({
                 defaultValue={area}
                 className="w-full rounded-xl border border-black/10 bg-[#f5f5f2] px-4 py-3 outline-none focus:border-black"
               >
+
                 <option value="">
                   ALL AREAS
                 </option>
@@ -211,6 +373,7 @@ export default async function SearchPage({
 
             </div>
 
+
             <div className="flex items-end">
 
               <button
@@ -222,6 +385,7 @@ export default async function SearchPage({
 
             </div>
 
+
             <label className="flex items-center gap-2 text-sm font-medium">
 
               <input
@@ -231,9 +395,10 @@ export default async function SearchPage({
                 defaultChecked={hotelOnly}
               />
 
-              ホテル情報あり
+              宿泊情報あり
 
             </label>
+
 
             <label className="flex items-center gap-2 text-sm font-medium">
 
@@ -254,6 +419,7 @@ export default async function SearchPage({
 
       </section>
 
+
       <section className="mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-28">
 
         <div className="mb-10 flex items-end justify-between">
@@ -265,21 +431,32 @@ export default async function SearchPage({
             </p>
 
             <h2 className="text-3xl font-bold md:text-5xl">
-              {filteredPosts.length} Rides
+              {filteredPosts.length} Journals
             </h2>
 
           </div>
 
         </div>
 
+
         <div className="grid gap-x-8 gap-y-16 md:grid-cols-2">
 
           {filteredPosts.map((post) => {
+
             const featuredImage =
               getFeaturedImage(post);
 
             const category =
               getCategory(post);
+
+            const journalType =
+              getJournalType(post);
+
+            const journalLabel =
+              getJournalLabel(post);
+
+            const postHref =
+              getPostHref(post);
 
             return (
               <article
@@ -287,7 +464,7 @@ export default async function SearchPage({
                 className="group"
               >
 
-                <Link href={`/touring/${post.slug}`}>
+                <Link href={postHref}>
 
                   <div className="overflow-hidden rounded-2xl bg-neutral-100">
 
@@ -305,13 +482,41 @@ export default async function SearchPage({
 
                 </Link>
 
+
                 <div className="mt-6">
 
-                  <p className="mb-3 text-xs font-semibold tracking-[0.15em] text-neutral-500">
-                    {category?.name || "TOURING"}
-                  </p>
+                  <div className="mb-3 flex flex-wrap items-center gap-3 text-xs font-semibold tracking-[0.15em] text-neutral-500">
 
-                  <Link href={`/touring/${post.slug}`}>
+                    <span className="rounded-full border border-black/15 px-3 py-1">
+                      {journalLabel}
+                    </span>
+
+                    {journalType === "touring" ? (
+
+                      <span>
+                        {category?.name || "TOURING"}
+                      </span>
+
+                    ) : (
+
+                      <span>
+                        {post.meta?.city ||
+                          post.meta?.country ||
+                          "TRAVEL"}
+                      </span>
+
+                    )}
+
+                    <span>/</span>
+
+                    <span>
+                      {formatJournalDate(post)}
+                    </span>
+
+                  </div>
+
+
+                  <Link href={postHref}>
 
                     <h3
                       className="text-2xl font-bold leading-snug hover:opacity-60 md:text-3xl"
@@ -322,9 +527,10 @@ export default async function SearchPage({
 
                   </Link>
 
+
                   {post.meta?.hotel && (
                     <p className="mt-3 text-sm text-neutral-500">
-                      HOTEL / {post.meta.hotel}
+                      STAY / {post.meta.hotel}
                     </p>
                   )}
 
@@ -336,6 +542,7 @@ export default async function SearchPage({
 
         </div>
 
+
         {filteredPosts.length === 0 && (
           <p className="text-neutral-500">
             条件に一致する記事はありません。
@@ -343,6 +550,7 @@ export default async function SearchPage({
         )}
 
       </section>
+
 
       <section className="border-t border-black/10">
 
@@ -359,18 +567,21 @@ export default async function SearchPage({
 
       </section>
 
+
       <footer className="bg-neutral-950 text-white">
 
         <div className="mx-auto flex max-w-7xl flex-col gap-8 px-6 py-14 md:flex-row md:items-end md:justify-between md:px-10">
 
           <div>
+
             <p className="text-xl font-black tracking-[0.18em]">
               TORA ROAD
             </p>
 
             <p className="mt-2 text-xs tracking-[0.25em] text-neutral-500">
-              MOTORCYCLE TOURING JOURNAL
+              MOTORCYCLE & TRAVEL JOURNAL
             </p>
+
           </div>
 
           <p className="text-xs text-neutral-600">

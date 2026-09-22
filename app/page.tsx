@@ -2,6 +2,10 @@ import Link from "next/link";
 
 import SiteHeader from "@/components/SiteHeader";
 import { getDormyInnProgress } from "@/lib/dormyInn";
+import {
+  formatJournalDate,
+  getJournalStartDate,
+} from "@/lib/journalDate";
 
 type Term = {
   id: number;
@@ -25,7 +29,10 @@ type Post = {
 
   meta?: {
     journal_type?: string;
+
     journal_date?: string;
+    journal_start_date?: string;
+    journal_end_date?: string;
 
     distance?: string;
     hotel?: string;
@@ -50,7 +57,9 @@ type Post = {
 };
 
 function toCloudFrontUrl(url?: string) {
-  if (!url) return undefined;
+  if (!url) {
+    return undefined;
+  }
 
   return url.replace(
     /^https?:\/\/[^/]+\/wp-content\/uploads\//,
@@ -124,22 +133,6 @@ function getPostContext(post: Post) {
   return getCategory(post).name;
 }
 
-/*
- * journal_date が登録されていれば旅した日を使用。
- * 未登録の記事はWordPress投稿日にフォールバック。
- */
-function getDisplayDate(post: Post) {
-  return post.meta?.journal_date || post.date;
-}
-
-function formatDate(date: string) {
-  return new Date(date).toLocaleDateString("ja-JP", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-}
-
 async function getPosts(): Promise<Post[]> {
   const res = await fetch(
     `${process.env.WORDPRESS_API_URL}/posts?_embed&per_page=100`,
@@ -152,7 +145,25 @@ async function getPosts(): Promise<Post[]> {
     throw new Error("Failed to fetch posts");
   }
 
-  return res.json();
+  const posts: Post[] = await res.json();
+
+  /*
+   * 実際に旅した日の新しい順に並べる。
+   *
+   * 優先順位:
+   * journal_start_date
+   * → journal_date
+   * → WordPress投稿日
+   */
+  return posts.sort((a, b) => {
+    const dateA =
+      new Date(getJournalStartDate(a)).getTime();
+
+    const dateB =
+      new Date(getJournalStartDate(b)).getTime();
+
+    return dateB - dateA;
+  });
 }
 
 export default async function Home() {
@@ -163,6 +174,10 @@ export default async function Home() {
     totalCount,
   } = await getDormyInnProgress();
 
+  /*
+   * getPosts()ですでに旅した日の新しい順なので、
+   * posts[0] = 最新の旅。
+   */
   const latestPost = posts[0];
 
   return (
@@ -216,9 +231,7 @@ export default async function Home() {
                     </span>
 
                     <span className="text-white/70">
-                      {formatDate(
-                        getDisplayDate(latestPost)
-                      )}
+                      {formatJournalDate(latestPost)}
                     </span>
 
                   </div>
@@ -454,9 +467,7 @@ export default async function Home() {
                             <span>/</span>
 
                             <span>
-                              {formatDate(
-                                getDisplayDate(post)
-                              )}
+                              {formatJournalDate(post)}
                             </span>
 
                           </div>

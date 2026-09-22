@@ -3,6 +3,10 @@ import type { MetadataRoute } from "next";
 type WordPressPost = {
   slug: string;
   modified: string;
+
+  meta?: {
+    journal_type?: string;
+  };
 };
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -21,6 +25,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 1,
     },
     {
+      url: `${siteUrl}/touring`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    {
+      url: `${siteUrl}/travel`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    {
       url: `${siteUrl}/area`,
       lastModified: new Date(),
       changeFrequency: "weekly",
@@ -33,16 +49,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     },
     {
+      url: `${siteUrl}/stays`,
+      lastModified: new Date(),
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    {
       url: `${siteUrl}/search`,
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 0.5,
-    },
-    {
-      url: `${siteUrl}/dormy-inn`,
-      lastModified: new Date(),
-      changeFrequency: "weekly",
-      priority: 0.8,
     },
   ];
 
@@ -66,12 +82,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       await res.json();
 
     const postPages: MetadataRoute.Sitemap =
-      posts.map((post) => ({
-        url: `${siteUrl}/touring/${post.slug}`,
-        lastModified: new Date(post.modified),
-        changeFrequency: "monthly",
-        priority: 0.7,
-      }));
+      posts.map((post) => {
+        const journalType =
+          post.meta?.journal_type === "travel"
+            ? "travel"
+            : "touring";
+
+        return {
+          url: `${siteUrl}/${journalType}/${post.slug}`,
+          lastModified: new Date(post.modified),
+          changeFrequency: "monthly",
+          priority: 0.7,
+        };
+      });
 
     return [
       ...staticPages,

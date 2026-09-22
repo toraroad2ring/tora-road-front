@@ -19,26 +19,33 @@ const siteUrl =
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
 
-  title: "Tora Road | Motorcycle Touring Journal",
+  title: "Tora Road | Motorcycle & Travel Journal",
 
   description:
-    "バイクツーリングの記録、走って気持ちいい道、景色、宿、ドーミーイン巡りを記録するモーターサイクルツーリングジャーナル。",
+    "バイクツーリングや旅行の記録、走って気持ちいい道、景色、宿、食事、旅先で訪れた場所やイベントを記録するトラベルジャーナル。",
 
   openGraph: {
     type: "website",
     locale: "ja_JP",
     siteName: "Tora Road",
-    title: "Tora Road | Motorcycle Touring Journal",
+
+    title:
+      "Tora Road | Motorcycle & Travel Journal",
+
     description:
-      "バイクツーリングの記録、走って気持ちいい道、景色、宿、ドーミーイン巡りを記録するモーターサイクルツーリングジャーナル。",
+      "バイクツーリングや旅行の記録、走って気持ちいい道、景色、宿、食事、旅先で訪れた場所やイベントを記録するトラベルジャーナル。",
+
     url: siteUrl,
   },
 
   twitter: {
     card: "summary_large_image",
-    title: "Tora Road | Motorcycle Touring Journal",
+
+    title:
+      "Tora Road | Motorcycle & Travel Journal",
+
     description:
-      "バイクツーリングの記録、走って気持ちいい道、景色、宿、ドーミーイン巡りを記録するモーターサイクルツーリングジャーナル。",
+      "バイクツーリングや旅行の記録、走って気持ちいい道、景色、宿、食事、旅先で訪れた場所やイベントを記録するトラベルジャーナル。",
   },
 };
 

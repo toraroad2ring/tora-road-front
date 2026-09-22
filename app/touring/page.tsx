@@ -1,6 +1,10 @@
 import Link from "next/link";
 
 import SiteHeader from "@/components/SiteHeader";
+import {
+  formatJournalDate,
+  getJournalStartDate,
+} from "@/lib/journalDate";
 
 type Post = {
   id: number;
@@ -17,7 +21,11 @@ type Post = {
 
   meta?: {
     journal_type?: string;
+
     journal_date?: string;
+    journal_start_date?: string;
+    journal_end_date?: string;
+
     distance?: string;
     hotel?: string;
     road?: string;
@@ -43,18 +51,6 @@ function toCloudFrontUrl(url?: string) {
   );
 }
 
-function getDisplayDate(post: Post) {
-  return post.meta?.journal_date || post.date;
-}
-
-function formatDate(date: string) {
-  return new Date(date).toLocaleDateString("ja-JP", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-}
-
 function stripHtml(html: string) {
   return html
     .replace(/<[^>]*>/g, "")
@@ -78,12 +74,22 @@ async function getTouringPosts(): Promise<Post[]> {
 
   const posts: Post[] = await res.json();
 
-  return posts.filter((post) => {
-    const journalType =
-      post.meta?.journal_type || "touring";
+  return posts
+    .filter((post) => {
+      const journalType =
+        post.meta?.journal_type || "touring";
 
-    return journalType === "touring";
-  });
+      return journalType === "touring";
+    })
+    .sort((a, b) => {
+      const dateA =
+        new Date(getJournalStartDate(a)).getTime();
+
+      const dateB =
+        new Date(getJournalStartDate(b)).getTime();
+
+      return dateB - dateA;
+    });
 }
 
 export default async function TouringPage() {
@@ -167,9 +173,7 @@ export default async function TouringPage() {
                       <span>•</span>
 
                       <span>
-                        {formatDate(
-                          getDisplayDate(post)
-                        )}
+                        {formatJournalDate(post)}
                       </span>
 
                     </div>

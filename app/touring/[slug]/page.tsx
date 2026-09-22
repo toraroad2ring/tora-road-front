@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import SiteHeader from "@/components/SiteHeader";
+import { formatJournalDate } from "@/lib/journalDate";
 
 type Term = {
   id: number;
@@ -30,7 +31,11 @@ type Post = {
 
   meta?: {
     journal_type?: string;
+
     journal_date?: string;
+    journal_start_date?: string;
+    journal_end_date?: string;
+
     distance?: string;
     hotel?: string;
     road?: string;
@@ -73,18 +78,6 @@ function getCategory(post: Post) {
   );
 
   return category?.name || "TOURING";
-}
-
-function getDisplayDate(post: Post) {
-  return post.meta?.journal_date || post.date;
-}
-
-function formatDate(date: string) {
-  return new Date(date).toLocaleDateString("ja-JP", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
 }
 
 function stripHtml(html: string) {
@@ -276,9 +269,7 @@ export default async function TouringPostPage({
               </span>
 
               <span className="text-white/70">
-                {formatDate(
-                  getDisplayDate(post)
-                )}
+                {formatJournalDate(post)}
               </span>
 
             </div>

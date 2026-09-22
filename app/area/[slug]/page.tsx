@@ -2,6 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import SiteHeader from "@/components/SiteHeader";
+import {
+  formatJournalDate,
+  getJournalStartDate,
+} from "@/lib/journalDate";
 
 type Category = {
   id: number;
@@ -14,12 +18,23 @@ type Post = {
   id: number;
   slug: string;
   date: string;
+
   title: {
     rendered: string;
   };
+
   excerpt: {
     rendered: string;
   };
+
+  meta?: {
+    journal_type?: string;
+
+    journal_date?: string;
+    journal_start_date?: string;
+    journal_end_date?: string;
+  };
+
   _embedded?: {
     "wp:featuredmedia"?: Array<{
       source_url: string;
@@ -29,7 +44,9 @@ type Post = {
 };
 
 function toCloudFrontUrl(url?: string) {
-  if (!url) return undefined;
+  if (!url) {
+    return undefined;
+  }
 
   return url.replace(
     /^https?:\/\/[^/]+\/wp-content\/uploads\//,
@@ -51,12 +68,12 @@ function getAltText(post: Post) {
   );
 }
 
-function formatDate(date: string) {
-  return new Date(date).toLocaleDateString("ja-JP", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
+function getJournalType(post: Post) {
+  if (post.meta?.journal_type === "travel") {
+    return "travel";
+  }
+
+  return "touring";
 }
 
 async function getCategoryBySlug(
@@ -73,7 +90,8 @@ async function getCategoryBySlug(
     throw new Error("Failed to fetch category");
   }
 
-  const categories: Category[] = await res.json();
+  const categories: Category[] =
+    await res.json();
 
   return categories[0] ?? null;
 }
@@ -82,7 +100,7 @@ async function getPostsByCategory(
   categoryId: number
 ): Promise<Post[]> {
   const res = await fetch(
-    `${process.env.WORDPRESS_API_URL}/posts?categories=${categoryId}&_embed`,
+    `${process.env.WORDPRESS_API_URL}/posts?categories=${categoryId}&_embed&per_page=100`,
     {
       cache: "no-store",
     }
@@ -92,7 +110,33 @@ async function getPostsByCategory(
     throw new Error("Failed to fetch posts");
   }
 
-  return res.json();
+  const posts: Post[] =
+    await res.json();
+
+  /*
+   * AREASはTOURING専用。
+   *
+   * TRAVEL記事に同じカテゴリが付いていても
+   * ここには表示しない。
+   */
+  return posts
+    .filter(
+      (post) =>
+        getJournalType(post) === "touring"
+    )
+    .sort((a, b) => {
+      const dateA =
+        new Date(
+          getJournalStartDate(a)
+        ).getTime();
+
+      const dateB =
+        new Date(
+          getJournalStartDate(b)
+        ).getTime();
+
+      return dateB - dateA;
+    });
 }
 
 export default async function AreaPage({
@@ -100,20 +144,26 @@ export default async function AreaPage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  const { slug } = await params;
+  const { slug } =
+    await params;
 
-  const category = await getCategoryBySlug(slug);
+  const category =
+    await getCategoryBySlug(slug);
 
   if (!category) {
     notFound();
   }
 
-  const posts = await getPostsByCategory(category.id);
+  const posts =
+    await getPostsByCategory(
+      category.id
+    );
 
   return (
     <main className="min-h-screen bg-[#f5f5f2] text-neutral-900">
 
       <SiteHeader />
+
 
       {/* AREA TITLE */}
       <section className="mx-auto max-w-7xl px-6 py-16 md:px-10 md:py-24">
@@ -138,6 +188,7 @@ export default async function AreaPage({
 
       </section>
 
+
       {/* POSTS */}
       <section className="border-t border-black/10 bg-white">
 
@@ -146,7 +197,7 @@ export default async function AreaPage({
           {posts.length === 0 ? (
 
             <p className="text-neutral-500">
-              このエリアの記事はまだありません。
+              このエリアのツーリング記事はまだありません。
             </p>
 
           ) : (
@@ -154,6 +205,7 @@ export default async function AreaPage({
             <div className="grid gap-x-8 gap-y-16 md:grid-cols-2">
 
               {posts.map((post) => {
+
                 const featuredImage =
                   getFeaturedImage(post);
 
@@ -190,13 +242,25 @@ export default async function AreaPage({
 
                     </Link>
 
+
                     <div className="mt-6">
 
-                      <p className="mb-3 text-xs font-semibold tracking-[0.15em] text-neutral-500">
-                        {formatDate(post.date)}
-                      </p>
+                      <div className="mb-3 flex flex-wrap items-center gap-3 text-xs font-semibold tracking-[0.15em] text-neutral-500">
 
-                      <Link href={`/touring/${post.slug}`}>
+                        <span className="rounded-full border border-black/15 px-3 py-1">
+                          TOURING
+                        </span>
+
+                        <span>
+                          {formatJournalDate(post)}
+                        </span>
+
+                      </div>
+
+
+                      <Link
+                        href={`/touring/${post.slug}`}
+                      >
 
                         <h2
                           className="
@@ -208,11 +272,13 @@ export default async function AreaPage({
                             md:text-3xl
                           "
                           dangerouslySetInnerHTML={{
-                            __html: post.title.rendered,
+                            __html:
+                              post.title.rendered,
                           }}
                         />
 
                       </Link>
+
 
                       <div
                         className="
@@ -224,9 +290,11 @@ export default async function AreaPage({
                           md:text-base
                         "
                         dangerouslySetInnerHTML={{
-                          __html: post.excerpt.rendered,
+                          __html:
+                            post.excerpt.rendered,
                         }}
                       />
+
 
                       <Link
                         href={`/touring/${post.slug}`}
@@ -249,6 +317,7 @@ export default async function AreaPage({
 
       </section>
 
+
       {/* BACK */}
       <section className="border-t border-black/10">
 
@@ -265,6 +334,7 @@ export default async function AreaPage({
 
       </section>
 
+
       {/* FOOTER */}
       <footer className="bg-neutral-950 text-white">
 
@@ -277,7 +347,7 @@ export default async function AreaPage({
             </p>
 
             <p className="mt-2 text-xs tracking-[0.25em] text-neutral-500">
-              MOTORCYCLE TOURING JOURNAL
+              MOTORCYCLE & TRAVEL JOURNAL
             </p>
 
           </div>

@@ -1,8 +1,7 @@
 import { ImageResponse } from "next/og";
 
-export const runtime = "edge";
-
-export const alt = "Tora Road - Motorcycle Touring Journal";
+export const alt =
+  "Tora Road - Motorcycle & Travel Journal";
 
 export const size = {
   width: 1200,
@@ -32,7 +31,7 @@ export default function Image() {
             letterSpacing: "0.3em",
           }}
         >
-          MOTORCYCLE TOURING JOURNAL
+          MOTORCYCLE & TRAVEL JOURNAL
         </div>
 
         <div
@@ -58,7 +57,7 @@ export default function Image() {
               color: "#555555",
             }}
           >
-            Roads, rides, landscapes and Dormy Inn.
+            Roads, rides, stays and travel stories.
           </div>
         </div>
 
@@ -69,7 +68,7 @@ export default function Image() {
             fontSize: 20,
           }}
         >
-          <div>JAPAN TOURING</div>
+          <div>TOURING / TRAVEL / STAYS</div>
           <div>tora-road-front.vercel.app</div>
         </div>
       </div>

@@ -1,6 +1,10 @@
 import Link from "next/link";
 
 import SiteHeader from "@/components/SiteHeader";
+import {
+  formatJournalDate,
+  getJournalStartDate,
+} from "@/lib/journalDate";
 
 type Post = {
   id: number;
@@ -17,7 +21,11 @@ type Post = {
 
   meta?: {
     journal_type?: string;
+
     journal_date?: string;
+    journal_start_date?: string;
+    journal_end_date?: string;
+
     country?: string;
     city?: string;
     hotel?: string;
@@ -45,18 +53,6 @@ function toCloudFrontUrl(url?: string) {
   );
 }
 
-function getDisplayDate(post: Post) {
-  return post.meta?.journal_date || post.date;
-}
-
-function formatDate(date: string) {
-  return new Date(date).toLocaleDateString("ja-JP", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-}
-
 function stripHtml(html: string) {
   return html
     .replace(/<[^>]*>/g, "")
@@ -80,9 +76,20 @@ async function getTravelPosts(): Promise<Post[]> {
 
   const posts: Post[] = await res.json();
 
-  return posts.filter(
-    (post) => post.meta?.journal_type === "travel"
-  );
+  return posts
+    .filter(
+      (post) =>
+        post.meta?.journal_type === "travel"
+    )
+    .sort((a, b) => {
+      const dateA =
+        new Date(getJournalStartDate(a)).getTime();
+
+      const dateB =
+        new Date(getJournalStartDate(b)).getTime();
+
+      return dateB - dateA;
+    });
 }
 
 export default async function TravelPage() {
@@ -183,9 +190,7 @@ export default async function TravelPage() {
                       <span>•</span>
 
                       <span>
-                        {formatDate(
-                          getDisplayDate(post)
-                        )}
+                        {formatJournalDate(post)}
                       </span>
 
                     </div>

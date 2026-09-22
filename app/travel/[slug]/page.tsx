@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import SiteHeader from "@/components/SiteHeader";
+import { formatJournalDate } from "@/lib/journalDate";
 
 type Post = {
   id: number;
@@ -23,7 +24,11 @@ type Post = {
 
   meta?: {
     journal_type?: string;
+
     journal_date?: string;
+    journal_start_date?: string;
+    journal_end_date?: string;
+
     country?: string;
     city?: string;
     hotel?: string;
@@ -55,18 +60,6 @@ function replaceContentImageUrls(html: string) {
     /https?:\/\/[^/"']+\/wp-content\/uploads\//g,
     "https://d3fqb2te8bdvc5.cloudfront.net/wp-content/uploads/"
   );
-}
-
-function getDisplayDate(post: Post) {
-  return post.meta?.journal_date || post.date;
-}
-
-function formatDate(date: string) {
-  return new Date(date).toLocaleDateString("ja-JP", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
 }
 
 function stripHtml(html: string) {
@@ -291,9 +284,7 @@ export default async function TravelPostPage({
               )}
 
               <span className="text-white/70">
-                {formatDate(
-                  getDisplayDate(post)
-                )}
+                {formatJournalDate(post)}
               </span>
 
             </div>

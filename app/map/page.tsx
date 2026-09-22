@@ -3,16 +3,54 @@ import Link from "next/link";
 import SiteHeader from "@/components/SiteHeader";
 import JapanMap from "@/components/JapanMap";
 
-type Category = {
+type Term = {
+  id: number;
+  name: string;
+  slug: string;
+  taxonomy: string;
+};
+
+type Post = {
+  id: number;
+
+  meta?: {
+    journal_type?: string;
+  };
+
+  _embedded?: {
+    "wp:term"?: Term[][];
+  };
+};
+
+type Area = {
   id: number;
   name: string;
   slug: string;
   count: number;
 };
 
-async function getCategories(): Promise<Category[]> {
+function getJournalType(post: Post) {
+  if (post.meta?.journal_type === "travel") {
+    return "travel";
+  }
+
+  return "touring";
+}
+
+function getCategory(post: Post) {
+  const terms =
+    post._embedded?.["wp:term"]?.flat() ?? [];
+
+  return terms.find(
+    (term) =>
+      term.taxonomy === "category" &&
+      term.slug !== "uncategorized"
+  );
+}
+
+async function getTouringData() {
   const res = await fetch(
-    `${process.env.WORDPRESS_API_URL}/categories?per_page=100`,
+    `${process.env.WORDPRESS_API_URL}/posts?_embed&per_page=100`,
     {
       cache: "no-store",
     }
@@ -20,47 +58,90 @@ async function getCategories(): Promise<Category[]> {
 
   if (!res.ok) {
     throw new Error(
-      "Failed to fetch categories"
+      "Failed to fetch touring posts"
     );
   }
 
-  const categories: Category[] =
+  const posts: Post[] =
     await res.json();
 
-  return categories
-    .filter(
-      (category) =>
-        category.count > 0
-    )
-    .filter(
-      (category) =>
-        category.slug !==
-        "uncategorized"
+  /*
+   * MAPはTOURING専用。
+   * TRAVEL記事は除外する。
+   */
+  const touringPosts =
+    posts.filter(
+      (post) =>
+        getJournalType(post) === "touring"
     );
+
+  /*
+   * TOURING記事のカテゴリを集計。
+   */
+  const areaMap =
+    new Map<string, Area>();
+
+  for (const post of touringPosts) {
+    const category =
+      getCategory(post);
+
+    if (!category) {
+      continue;
+    }
+
+    const existing =
+      areaMap.get(category.slug);
+
+    if (existing) {
+      existing.count += 1;
+      continue;
+    }
+
+    areaMap.set(
+      category.slug,
+      {
+        id: category.id,
+        name: category.name,
+        slug: category.slug,
+        count: 1,
+      }
+    );
+  }
+
+  const areas =
+    Array.from(areaMap.values());
+
+  return {
+    touringPosts,
+    areas,
+  };
 }
 
 export default async function MapPage() {
-  const categories =
-    await getCategories();
+  const {
+    touringPosts,
+    areas,
+  } = await getTouringData();
+
+  const mapAreas =
+    areas.map((area) => ({
+      name: area.name,
+      slug: area.slug,
+    }));
+
+  const visitedAreaCount =
+    areas.length;
 
   const totalRides =
-    categories.reduce(
-      (sum, category) =>
-        sum + category.count,
-      0
-    );
-
-  const areas =
-    categories.map((category) => ({
-      name: category.name,
-      slug: category.slug,
-    }));
+    touringPosts.length;
 
   return (
     <main className="min-h-screen bg-[#f5f5f2] text-neutral-900">
 
       <SiteHeader />
 
+
+      {/* HERO */}
       <section className="mx-auto max-w-7xl px-6 py-16 md:px-10 md:py-24">
 
         <p className="mb-4 text-xs font-bold tracking-[0.35em] text-neutral-500">
@@ -72,12 +153,14 @@ export default async function MapPage() {
         </h1>
 
         <p className="mt-8 max-w-2xl text-lg leading-8 text-neutral-600">
-          走った地域を、
+          バイクで走った地域を、
           日本地図に残していく。
         </p>
 
       </section>
 
+
+      {/* STATS */}
       <section className="border-y border-black/10 bg-white">
 
         <div className="mx-auto grid max-w-7xl gap-8 px-6 py-12 md:grid-cols-2 md:px-10">
@@ -89,10 +172,11 @@ export default async function MapPage() {
             </p>
 
             <p className="mt-3 text-6xl font-black">
-              {categories.length}
+              {visitedAreaCount}
             </p>
 
           </div>
+
 
           <div>
 
@@ -110,6 +194,8 @@ export default async function MapPage() {
 
       </section>
 
+
+      {/* MAP */}
       <section className="mx-auto max-w-7xl px-6 py-20 md:px-10 md:py-28">
 
         <div className="mb-10">
@@ -124,29 +210,50 @@ export default async function MapPage() {
 
         </div>
 
-        <div className="rounded-[28px] border border-black/10 bg-white p-6 md:p-12">
 
-          <JapanMap areas={areas} />
+        {mapAreas.length > 0 ? (
 
-        </div>
+          <div className="rounded-[28px] border border-black/10 bg-white p-6 md:p-12">
+
+            <JapanMap
+              areas={mapAreas}
+            />
+
+          </div>
+
+        ) : (
+
+          <div className="rounded-[28px] border border-black/10 bg-white p-10">
+
+            <p className="text-neutral-500">
+              ツーリング地域はまだ登録されていません。
+            </p>
+
+          </div>
+
+        )}
 
       </section>
 
+
+      {/* BACK */}
       <section className="border-t border-black/10">
 
         <div className="mx-auto max-w-7xl px-6 py-14 md:px-10">
 
           <Link
-            href="/"
+            href="/touring"
             className="inline-flex items-center gap-3 text-sm font-bold tracking-[0.15em]"
           >
-            ← BACK TO JOURNAL
+            ← BACK TO TOURING
           </Link>
 
         </div>
 
       </section>
 
+
+      {/* FOOTER */}
       <footer className="bg-neutral-950 text-white">
 
         <div className="mx-auto flex max-w-7xl flex-col gap-8 px-6 py-14 md:flex-row md:items-end md:justify-between md:px-10">
@@ -158,7 +265,7 @@ export default async function MapPage() {
             </p>
 
             <p className="mt-2 text-xs tracking-[0.25em] text-neutral-500">
-              MOTORCYCLE TOURING JOURNAL
+              MOTORCYCLE & TRAVEL JOURNAL
             </p>
 
           </div>
