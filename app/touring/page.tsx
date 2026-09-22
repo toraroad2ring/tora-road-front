@@ -17,6 +17,7 @@ type Post = {
 
   meta?: {
     journal_type?: string;
+    journal_date?: string;
     distance?: string;
     hotel?: string;
     road?: string;
@@ -40,6 +41,10 @@ function toCloudFrontUrl(url?: string) {
     /^https?:\/\/[^/]+\/wp-content\/uploads\//,
     "https://d3fqb2te8bdvc5.cloudfront.net/wp-content/uploads/"
   );
+}
+
+function getDisplayDate(post: Post) {
+  return post.meta?.journal_date || post.date;
 }
 
 function formatDate(date: string) {
@@ -162,7 +167,9 @@ export default async function TouringPage() {
                       <span>•</span>
 
                       <span>
-                        {formatDate(post.date)}
+                        {formatDate(
+                          getDisplayDate(post)
+                        )}
                       </span>
 
                     </div>

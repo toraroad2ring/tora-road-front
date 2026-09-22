@@ -23,6 +23,7 @@ type Post = {
 
   meta?: {
     journal_type?: string;
+    journal_date?: string;
     country?: string;
     city?: string;
     hotel?: string;
@@ -54,6 +55,10 @@ function replaceContentImageUrls(html: string) {
     /https?:\/\/[^/"']+\/wp-content\/uploads\//g,
     "https://d3fqb2te8bdvc5.cloudfront.net/wp-content/uploads/"
   );
+}
+
+function getDisplayDate(post: Post) {
+  return post.meta?.journal_date || post.date;
 }
 
 function formatDate(date: string) {
@@ -286,7 +291,9 @@ export default async function TravelPostPage({
               )}
 
               <span className="text-white/70">
-                {formatDate(post.date)}
+                {formatDate(
+                  getDisplayDate(post)
+                )}
               </span>
 
             </div>

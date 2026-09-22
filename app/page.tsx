@@ -25,6 +25,7 @@ type Post = {
 
   meta?: {
     journal_type?: string;
+    journal_date?: string;
 
     distance?: string;
     hotel?: string;
@@ -123,6 +124,14 @@ function getPostContext(post: Post) {
   return getCategory(post).name;
 }
 
+/*
+ * journal_date が登録されていれば旅した日を使用。
+ * 未登録の記事はWordPress投稿日にフォールバック。
+ */
+function getDisplayDate(post: Post) {
+  return post.meta?.journal_date || post.date;
+}
+
 function formatDate(date: string) {
   return new Date(date).toLocaleDateString("ja-JP", {
     year: "numeric",
@@ -207,7 +216,9 @@ export default async function Home() {
                     </span>
 
                     <span className="text-white/70">
-                      {formatDate(latestPost.date)}
+                      {formatDate(
+                        getDisplayDate(latestPost)
+                      )}
                     </span>
 
                   </div>
@@ -443,7 +454,9 @@ export default async function Home() {
                             <span>/</span>
 
                             <span>
-                              {formatDate(post.date)}
+                              {formatDate(
+                                getDisplayDate(post)
+                              )}
                             </span>
 
                           </div>

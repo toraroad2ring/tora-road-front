@@ -15,27 +15,35 @@ type Post = {
   id: number;
   slug: string;
   date: string;
+
   title: {
     rendered: string;
   };
+
   content: {
     rendered: string;
   };
+
   excerpt?: {
     rendered: string;
   };
+
   meta?: {
+    journal_type?: string;
+    journal_date?: string;
     distance?: string;
     hotel?: string;
     road?: string;
     food?: string;
     map_embed_url?: string;
   };
+
   _embedded?: {
     "wp:featuredmedia"?: Array<{
       source_url: string;
       alt_text: string;
     }>;
+
     "wp:term"?: Term[][];
   };
 };
@@ -57,13 +65,18 @@ function replaceContentImageUrls(html: string) {
 }
 
 function getCategory(post: Post) {
-  const terms = post._embedded?.["wp:term"]?.flat() ?? [];
+  const terms =
+    post._embedded?.["wp:term"]?.flat() ?? [];
 
   const category = terms.find(
     (term) => term.taxonomy === "category"
   );
 
   return category?.name || "TOURING";
+}
+
+function getDisplayDate(post: Post) {
+  return post.meta?.journal_date || post.date;
 }
 
 function formatDate(date: string) {
@@ -135,7 +148,10 @@ export async function generateMetadata({
 
   const post = await getPostBySlug(slug);
 
-  if (!post) {
+  if (
+    !post ||
+    post.meta?.journal_type === "travel"
+  ) {
     return {
       title: "記事が見つかりません | Tora Road",
     };
@@ -207,7 +223,10 @@ export default async function TouringPostPage({
 
   const post = await getPostBySlug(slug);
 
-  if (!post) {
+  if (
+    !post ||
+    post.meta?.journal_type === "travel"
+  ) {
     notFound();
   }
 
@@ -257,7 +276,9 @@ export default async function TouringPostPage({
               </span>
 
               <span className="text-white/70">
-                {formatDate(post.date)}
+                {formatDate(
+                  getDisplayDate(post)
+                )}
               </span>
 
             </div>
@@ -430,14 +451,14 @@ export default async function TouringPostPage({
         <div className="mx-auto max-w-4xl px-6 py-16">
 
           <Link
-            href="/"
+            href="/touring"
             className="group inline-flex items-center gap-3 text-sm font-bold tracking-[0.15em]"
           >
             <span className="transition-transform group-hover:-translate-x-1">
               ←
             </span>
 
-            BACK TO JOURNAL
+            BACK TO TOURING
           </Link>
 
         </div>
@@ -456,7 +477,7 @@ export default async function TouringPostPage({
             </p>
 
             <p className="mt-2 text-xs tracking-[0.25em] text-neutral-500">
-              MOTORCYCLE TOURING JOURNAL
+              MOTORCYCLE & TRAVEL JOURNAL
             </p>
 
           </div>

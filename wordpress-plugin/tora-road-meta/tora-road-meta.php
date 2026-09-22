@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Tora Road Meta
  * Description: Tora Roadの記事・旅行記・ツーリング向け宿泊施設データを管理します。
- * Version: 4.0.2
+ * Version: 4.0.3
  */
 
 
@@ -21,7 +21,26 @@ add_action('init', function () {
         'default' => 'touring',
     ]);
 
+    /**
+     * 旧フィールド。
+     * 既存記事との互換性のため残します。
+     */
     register_post_meta('post', 'journal_date', [
+        'show_in_rest' => true,
+        'single' => true,
+        'type' => 'string',
+    ]);
+
+    /**
+     * 新しい旅行期間フィールド。
+     */
+    register_post_meta('post', 'journal_start_date', [
+        'show_in_rest' => true,
+        'single' => true,
+        'type' => 'string',
+    ]);
+
+    register_post_meta('post', 'journal_end_date', [
         'show_in_rest' => true,
         'single' => true,
         'type' => 'string',
@@ -233,9 +252,29 @@ function tora_road_render_journal_meta_box($post) {
         $journal_type = 'touring';
     }
 
+    /**
+     * 旧 journal_date も取得。
+     * start_date が未設定なら編集画面上で旧日付を開始日に表示します。
+     */
     $journal_date = get_post_meta(
         $post->ID,
         'journal_date',
+        true
+    );
+
+    $journal_start_date = get_post_meta(
+        $post->ID,
+        'journal_start_date',
+        true
+    );
+
+    if (!$journal_start_date && $journal_date) {
+        $journal_start_date = $journal_date;
+    }
+
+    $journal_end_date = get_post_meta(
+        $post->ID,
+        'journal_end_date',
         true
     );
 
@@ -360,6 +399,23 @@ function tora_road_render_journal_meta_box($post) {
             font-weight: 600;
         }
 
+        .tora-road-date-grid {
+            display: grid;
+            grid-template-columns: repeat(
+                2,
+                minmax(0, 300px)
+            );
+            gap: 20px;
+        }
+
+        @media (max-width: 782px) {
+
+            .tora-road-date-grid {
+                grid-template-columns: 1fr;
+            }
+
+        }
+
     </style>
 
 
@@ -405,24 +461,45 @@ function tora_road_render_journal_meta_box($post) {
         </div>
 
 
-        <div class="tora-road-field">
+        <div class="tora-road-date-grid">
 
-            <label for="tora_journal_date">
-                JOURNAL DATE - 旅した日
-            </label>
+            <div class="tora-road-field">
 
-            <input
-                type="date"
-                id="tora_journal_date"
-                name="tora_journal_date"
-                value="<?php echo esc_attr($journal_date); ?>"
-            >
+                <label for="tora_journal_start_date">
+                    JOURNAL START DATE - 開始日
+                </label>
 
-            <p class="tora-road-help">
-                WordPressの投稿日ではなく、実際にツーリング・旅行した日を入力します。
-            </p>
+                <input
+                    type="date"
+                    id="tora_journal_start_date"
+                    name="tora_journal_start_date"
+                    value="<?php echo esc_attr($journal_start_date); ?>"
+                >
+
+            </div>
+
+
+            <div class="tora-road-field">
+
+                <label for="tora_journal_end_date">
+                    JOURNAL END DATE - 終了日
+                </label>
+
+                <input
+                    type="date"
+                    id="tora_journal_end_date"
+                    name="tora_journal_end_date"
+                    value="<?php echo esc_attr($journal_end_date); ?>"
+                >
+
+            </div>
 
         </div>
+
+        <p class="tora-road-help">
+            日帰りの場合は開始日だけ入力してください。
+            複数日の旅行・ツーリングでは開始日と終了日の両方を入力します。
+        </p>
 
     </div>
 
@@ -435,6 +512,7 @@ function tora_road_render_journal_meta_box($post) {
         <h3 class="tora-road-section-title">
             TOURING DATA
         </h3>
+
 
         <div class="tora-road-field">
 
@@ -497,6 +575,7 @@ function tora_road_render_journal_meta_box($post) {
         <h3 class="tora-road-section-title">
             TRAVEL DATA
         </h3>
+
 
         <div class="tora-road-field">
 
@@ -753,7 +832,47 @@ function tora_road_render_journal_meta_box($post) {
 
 /**
  * ---------------------------------------------------------
- * 5. 通常記事メタデータ保存
+ * 5. 日付チェック用関数
+ * ---------------------------------------------------------
+ */
+
+function tora_road_is_valid_date($date) {
+
+    if ($date === '') {
+        return true;
+    }
+
+    $date_object = DateTime::createFromFormat(
+        'Y-m-d',
+        $date
+    );
+
+    $date_errors = DateTime::getLastErrors();
+
+    if ($date_object === false) {
+        return false;
+    }
+
+    if (
+        $date_errors !== false &&
+        (
+            $date_errors['warning_count'] > 0 ||
+            $date_errors['error_count'] > 0
+        )
+    ) {
+        return false;
+    }
+
+    return (
+        $date_object->format('Y-m-d') === $date
+    );
+
+}
+
+
+/**
+ * ---------------------------------------------------------
+ * 6. 通常記事メタデータ保存
  * ---------------------------------------------------------
  */
 
@@ -788,6 +907,9 @@ add_action('save_post_post', function ($post_id) {
     }
 
 
+    /**
+     * JOURNAL TYPE
+     */
     $journal_type = 'touring';
 
     if (
@@ -804,62 +926,79 @@ add_action('save_post_post', function ($post_id) {
     );
 
 
-    /*
-     * JOURNAL DATE
-     *
-     * HTML date input から YYYY-MM-DD 形式で受け取ります。
-     * 正しい日付形式の場合のみ保存します。
+    /**
+     * JOURNAL START DATE
      */
-    if (isset($_POST['tora_journal_date'])) {
+    if (isset($_POST['tora_journal_start_date'])) {
 
-        $journal_date = sanitize_text_field(
+        $journal_start_date = sanitize_text_field(
             wp_unslash(
-                $_POST['tora_journal_date']
+                $_POST['tora_journal_start_date']
             )
         );
 
-        if ($journal_date === '') {
+        if ($journal_start_date === '') {
 
             delete_post_meta(
                 $post_id,
-                'journal_date'
+                'journal_start_date'
             );
 
-        } else {
+        } elseif (
+            tora_road_is_valid_date(
+                $journal_start_date
+            )
+        ) {
 
-            $date_object = DateTime::createFromFormat(
-                'Y-m-d',
-                $journal_date
+            update_post_meta(
+                $post_id,
+                'journal_start_date',
+                $journal_start_date
             );
-
-            $date_errors = DateTime::getLastErrors();
-
-            $date_is_valid =
-                $date_object !== false &&
-                (
-                    $date_errors === false ||
-                    (
-                        $date_errors['warning_count'] === 0 &&
-                        $date_errors['error_count'] === 0
-                    )
-                ) &&
-                $date_object->format('Y-m-d') === $journal_date;
-
-            if ($date_is_valid) {
-
-                update_post_meta(
-                    $post_id,
-                    'journal_date',
-                    $journal_date
-                );
-
-            }
 
         }
 
     }
 
 
+    /**
+     * JOURNAL END DATE
+     */
+    if (isset($_POST['tora_journal_end_date'])) {
+
+        $journal_end_date = sanitize_text_field(
+            wp_unslash(
+                $_POST['tora_journal_end_date']
+            )
+        );
+
+        if ($journal_end_date === '') {
+
+            delete_post_meta(
+                $post_id,
+                'journal_end_date'
+            );
+
+        } elseif (
+            tora_road_is_valid_date(
+                $journal_end_date
+            )
+        ) {
+
+            update_post_meta(
+                $post_id,
+                'journal_end_date',
+                $journal_end_date
+            );
+
+        }
+
+    }
+
+
+    /**
+     * その他テキストフィールド
+     */
     $text_fields = [
         'distance' => 'tora_distance',
         'hotel' => 'tora_hotel',
@@ -891,6 +1030,9 @@ add_action('save_post_post', function ($post_id) {
     }
 
 
+    /**
+     * TRANSPORT TYPE
+     */
     $allowed_transport_types = [
         '',
         'flight',
@@ -930,6 +1072,9 @@ add_action('save_post_post', function ($post_id) {
     );
 
 
+    /**
+     * MAP
+     */
     if (isset($_POST['tora_map_embed_url'])) {
 
         update_post_meta(
@@ -945,6 +1090,9 @@ add_action('save_post_post', function ($post_id) {
     }
 
 
+    /**
+     * VISITED
+     */
     update_post_meta(
         $post_id,
         'visited',
@@ -956,7 +1104,7 @@ add_action('save_post_post', function ($post_id) {
 
 /**
  * ---------------------------------------------------------
- * 6. Stay専用入力欄
+ * 7. Stay専用入力欄
  * ---------------------------------------------------------
  */
 
@@ -1237,7 +1385,7 @@ function tora_road_render_stay_meta_box($post) {
 
 /**
  * ---------------------------------------------------------
- * 7. Stayメタデータ保存
+ * 8. Stayメタデータ保存
  * ---------------------------------------------------------
  */
 
@@ -1387,7 +1535,7 @@ add_action('save_post_dormy_inn', function ($post_id) {
 
 /**
  * ---------------------------------------------------------
- * 8. 標準カスタムフィールド欄を非表示
+ * 9. 標準カスタムフィールド欄を非表示
  * ---------------------------------------------------------
  */
 
