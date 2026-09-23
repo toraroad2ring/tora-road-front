@@ -42,3 +42,8 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*

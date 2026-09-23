@@ -12,52 +12,23 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ??
-  "http://localhost:3000";
-
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
+  title: "TORA ROAD",
+  description: "バイクツーリングやセキュリティ関連の記録",
 
-  title: "Tora Road | Motorcycle & Travel Journal",
-
-  description:
-    "バイクツーリングや旅行の記録、走って気持ちいい道、景色、宿、食事、旅先で訪れた場所やイベントを記録するトラベルジャーナル。",
-
-  openGraph: {
-    type: "website",
-    locale: "ja_JP",
-    siteName: "Tora Road",
-
-    title:
-      "Tora Road | Motorcycle & Travel Journal",
-
-    description:
-      "バイクツーリングや旅行の記録、走って気持ちいい道、景色、宿、食事、旅先で訪れた場所やイベントを記録するトラベルジャーナル。",
-
-    url: siteUrl,
-  },
-
-  twitter: {
-    card: "summary_large_image",
-
-    title:
-      "Tora Road | Motorcycle & Travel Journal",
-
-    description:
-      "バイクツーリングや旅行の記録、走って気持ちいい道、景色、宿、食事、旅先で訪れた場所やイベントを記録するトラベルジャーナル。",
+  verification: {
+    google: "HcyNHy-H2Kv0bhgSNtf3ayW3C-2rVw7jzO0dboEE0dg",
   },
 };
 
 export default function RootLayout({
   children,
-}: LayoutProps<"/">) {
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
-    <html
-      lang="ja"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">
+    <html lang="ja">
+      <body className={`${geistSans.variable} ${geistMono.variable}`}>
         {children}
       </body>
     </html>
