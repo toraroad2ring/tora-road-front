@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import SiteHeader from "@/components/SiteHeader";
+import ViewCounter from "@/components/ViewCounter";
 import { formatJournalDate } from "@/lib/journalDate";
 
 type Post = {
@@ -243,14 +244,11 @@ export default async function TravelPostPage({
 
   return (
     <main className="min-h-screen bg-[#f5f5f2] text-neutral-900">
-
       <SiteHeader />
 
       {/* HERO */}
       <section className="mx-auto max-w-7xl px-6 pt-8 md:px-10 md:pt-12">
-
         <div className="relative overflow-hidden rounded-[28px] bg-neutral-900">
-
           {featuredImage ? (
             <img
               src={featuredImage}
@@ -264,9 +262,7 @@ export default async function TravelPostPage({
           <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
 
           <div className="absolute bottom-0 left-0 max-w-5xl p-7 text-white md:p-12">
-
             <div className="mb-5 flex flex-wrap items-center gap-4 text-xs font-semibold tracking-[0.18em]">
-
               <span className="rounded-full border border-white/50 px-4 py-2">
                 TRAVEL
               </span>
@@ -287,6 +283,7 @@ export default async function TravelPostPage({
                 {formatJournalDate(post)}
               </span>
 
+              <ViewCounter postId={post.slug} />
             </div>
 
             <h1
@@ -295,27 +292,20 @@ export default async function TravelPostPage({
                 __html: post.title.rendered,
               }}
             />
-
           </div>
-
         </div>
-
       </section>
 
       {/* ARTICLE */}
       <article className="mx-auto max-w-4xl px-6 py-16 md:py-24">
-
         {/* TRAVEL DATA */}
         <section className="mb-16">
-
           <p className="mb-3 text-xs font-bold tracking-[0.3em] text-neutral-500">
             TRAVEL DATA
           </p>
 
           <div className="grid overflow-hidden rounded-2xl border border-black/10 bg-white sm:grid-cols-2">
-
             <div className="border-b border-black/10 p-6 sm:border-r">
-
               <p className="text-[10px] font-bold tracking-[0.25em] text-neutral-400">
                 COUNTRY
               </p>
@@ -323,11 +313,9 @@ export default async function TravelPostPage({
               <p className="mt-3 text-xl font-bold">
                 {post.meta?.country || "-"}
               </p>
-
             </div>
 
             <div className="border-b border-black/10 p-6">
-
               <p className="text-[10px] font-bold tracking-[0.25em] text-neutral-400">
                 CITY
               </p>
@@ -335,11 +323,9 @@ export default async function TravelPostPage({
               <p className="mt-3 text-xl font-bold">
                 {post.meta?.city || "-"}
               </p>
-
             </div>
 
             <div className="border-b border-black/10 p-6 sm:border-r">
-
               <p className="text-[10px] font-bold tracking-[0.25em] text-neutral-400">
                 STAY
               </p>
@@ -347,11 +333,9 @@ export default async function TravelPostPage({
               <p className="mt-3 text-xl font-bold">
                 {post.meta?.hotel || "-"}
               </p>
-
             </div>
 
             <div className="border-b border-black/10 p-6">
-
               <p className="text-[10px] font-bold tracking-[0.25em] text-neutral-400">
                 TRANSPORT
               </p>
@@ -367,11 +351,9 @@ export default async function TravelPostPage({
                   {post.meta.transport_detail}
                 </p>
               )}
-
             </div>
 
             <div className="p-6 sm:col-span-2">
-
               <p className="text-[10px] font-bold tracking-[0.25em] text-neutral-400">
                 EVENT / PURPOSE
               </p>
@@ -379,23 +361,18 @@ export default async function TravelPostPage({
               <p className="mt-3 text-xl font-bold">
                 {post.meta?.event || "-"}
               </p>
-
             </div>
-
           </div>
-
         </section>
 
         {/* ROUTE MAP */}
         {mapEmbedUrl && (
           <section className="mb-16">
-
             <p className="mb-3 text-xs font-bold tracking-[0.3em] text-neutral-500">
               MAP
             </p>
 
             <div className="overflow-hidden rounded-2xl border border-black/10 bg-white">
-
               <iframe
                 src={mapEmbedUrl}
                 width="100%"
@@ -404,9 +381,7 @@ export default async function TravelPostPage({
                 referrerPolicy="no-referrer-when-downgrade"
                 className="block w-full"
               />
-
             </div>
-
           </section>
         )}
 
@@ -468,38 +443,28 @@ export default async function TravelPostPage({
             __html: contentHtml,
           }}
         />
-
       </article>
 
       {/* BACK */}
       <section className="border-t border-black/10">
-
         <div className="mx-auto max-w-4xl px-6 py-16">
-
           <Link
             href="/travel"
             className="group inline-flex items-center gap-3 text-sm font-bold tracking-[0.15em]"
           >
-
             <span className="transition-transform group-hover:-translate-x-1">
               ←
             </span>
 
             BACK TO TRAVEL
-
           </Link>
-
         </div>
-
       </section>
 
       {/* FOOTER */}
       <footer className="bg-neutral-950 text-white">
-
         <div className="mx-auto flex max-w-7xl flex-col gap-8 px-6 py-14 md:flex-row md:items-end md:justify-between md:px-10">
-
           <div>
-
             <p className="text-xl font-black tracking-[0.18em]">
               TORA ROAD
             </p>
@@ -507,17 +472,13 @@ export default async function TravelPostPage({
             <p className="mt-2 text-xs tracking-[0.25em] text-neutral-500">
               MOTORCYCLE & TRAVEL JOURNAL
             </p>
-
           </div>
 
           <p className="text-xs text-neutral-600">
             © {new Date().getFullYear()} TORA ROAD
           </p>
-
         </div>
-
       </footer>
-
     </main>
   );
 }
