@@ -41,7 +41,10 @@ type Post = {
     hotel?: string;
     road?: string;
     food?: string;
+
     map_embed_url?: string;
+    map_embed_url_day1?: string;
+    map_embed_url_day2?: string;
   };
 
   _embedded?: {
@@ -236,8 +239,34 @@ export default async function TouringPostPage({
   const contentHtml =
     replaceContentImageUrls(post.content.rendered);
 
+  /**
+   * Google Maps
+   *
+   * map_embed_url
+   *   既存記事用の1枚地図
+   *
+   * map_embed_url_day1
+   * map_embed_url_day2
+   *   複数日ツーリング用
+   */
   const mapEmbedUrl =
     post.meta?.map_embed_url;
+
+  const mapEmbedUrlDay1 =
+    post.meta?.map_embed_url_day1;
+
+  const mapEmbedUrlDay2 =
+    post.meta?.map_embed_url_day2;
+
+  /**
+   * DAY1 / DAY2 のどちらかが設定されている場合は
+   * 複数日用の地図表示を優先します。
+   *
+   * 設定されていなければ、
+   * 既存の map_embed_url を使用します。
+   */
+  const hasMultiDayMap =
+    Boolean(mapEmbedUrlDay1 || mapEmbedUrlDay2);
 
   return (
     <main className="min-h-screen bg-[#f5f5f2] text-neutral-900">
@@ -283,6 +312,7 @@ export default async function TouringPostPage({
 
       {/* ARTICLE */}
       <article className="mx-auto max-w-4xl px-6 py-16 md:py-24">
+
         {/* RIDE DATA */}
         <section className="mb-16">
           <p className="mb-3 text-xs font-bold tracking-[0.3em] text-neutral-500">
@@ -290,6 +320,7 @@ export default async function TouringPostPage({
           </p>
 
           <div className="grid overflow-hidden rounded-2xl border border-black/10 bg-white sm:grid-cols-2">
+
             <div className="border-b border-black/10 p-6 sm:border-r">
               <p className="text-[10px] font-bold tracking-[0.25em] text-neutral-400">
                 DISTANCE
@@ -329,12 +360,71 @@ export default async function TouringPostPage({
                 {post.meta?.food || "-"}
               </p>
             </div>
+
           </div>
         </section>
 
-        {/* ROUTE MAP */}
-        {mapEmbedUrl && (
+
+        {/* MULTI DAY ROUTE MAP */}
+        {hasMultiDayMap && (
           <section className="mb-16">
+
+            <p className="mb-3 text-xs font-bold tracking-[0.3em] text-neutral-500">
+              ROUTE MAP
+            </p>
+
+            <div className="space-y-8">
+
+              {mapEmbedUrlDay1 && (
+                <div>
+                  <h2 className="mb-4 text-xl font-bold">
+                    1日目のルート
+                  </h2>
+
+                  <div className="overflow-hidden rounded-2xl border border-black/10 bg-white">
+                    <iframe
+                      src={mapEmbedUrlDay1}
+                      title="1日目のツーリングルート"
+                      width="100%"
+                      height="480"
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      className="block w-full"
+                    />
+                  </div>
+                </div>
+              )}
+
+
+              {mapEmbedUrlDay2 && (
+                <div>
+                  <h2 className="mb-4 text-xl font-bold">
+                    2日目のルート
+                  </h2>
+
+                  <div className="overflow-hidden rounded-2xl border border-black/10 bg-white">
+                    <iframe
+                      src={mapEmbedUrlDay2}
+                      title="2日目のツーリングルート"
+                      width="100%"
+                      height="480"
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      className="block w-full"
+                    />
+                  </div>
+                </div>
+              )}
+
+            </div>
+          </section>
+        )}
+
+
+        {/* LEGACY SINGLE ROUTE MAP */}
+        {!hasMultiDayMap && mapEmbedUrl && (
+          <section className="mb-16">
+
             <p className="mb-3 text-xs font-bold tracking-[0.3em] text-neutral-500">
               ROUTE MAP
             </p>
@@ -342,6 +432,7 @@ export default async function TouringPostPage({
             <div className="overflow-hidden rounded-2xl border border-black/10 bg-white">
               <iframe
                 src={mapEmbedUrl}
+                title="ツーリングルート"
                 width="100%"
                 height="480"
                 loading="lazy"
@@ -349,8 +440,10 @@ export default async function TouringPostPage({
                 className="block w-full"
               />
             </div>
+
           </section>
         )}
+
 
         {/* WORDPRESS BODY */}
         <div
@@ -410,11 +503,14 @@ export default async function TouringPostPage({
             __html: contentHtml,
           }}
         />
+
       </article>
+
 
       {/* BACK */}
       <section className="border-t border-black/10">
         <div className="mx-auto max-w-4xl px-6 py-16">
+
           <Link
             href="/touring"
             className="group inline-flex items-center gap-3 text-sm font-bold tracking-[0.15em]"
@@ -425,12 +521,15 @@ export default async function TouringPostPage({
 
             BACK TO TOURING
           </Link>
+
         </div>
       </section>
+
 
       {/* FOOTER */}
       <footer className="bg-neutral-950 text-white">
         <div className="mx-auto flex max-w-7xl flex-col gap-8 px-6 py-14 md:flex-row md:items-end md:justify-between md:px-10">
+
           <div>
             <p className="text-xl font-black tracking-[0.18em]">
               TORA ROAD
@@ -444,8 +543,10 @@ export default async function TouringPostPage({
           <p className="text-xs text-neutral-600">
             © {new Date().getFullYear()} TORA ROAD
           </p>
+
         </div>
       </footer>
+
     </main>
   );
 }

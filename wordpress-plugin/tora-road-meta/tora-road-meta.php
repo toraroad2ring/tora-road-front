@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Tora Road Meta
  * Description: Tora Roadの記事・旅行記・ツーリング向け宿泊施設データを管理します。
- * Version: 4.0.3
+ * Version: 4.0.4
  */
 
 
@@ -100,7 +100,26 @@ add_action('init', function () {
         'type' => 'string',
     ]);
 
+    /**
+     * 旧Google Mapsフィールド。
+     * 既存記事との互換性のため残します。
+     */
     register_post_meta('post', 'map_embed_url', [
+        'show_in_rest' => true,
+        'single' => true,
+        'type' => 'string',
+    ]);
+
+    /**
+     * 複数日ツーリング用Google Mapsフィールド。
+     */
+    register_post_meta('post', 'map_embed_url_day1', [
+        'show_in_rest' => true,
+        'single' => true,
+        'type' => 'string',
+    ]);
+
+    register_post_meta('post', 'map_embed_url_day2', [
         'show_in_rest' => true,
         'single' => true,
         'type' => 'string',
@@ -335,6 +354,18 @@ function tora_road_render_journal_meta_box($post) {
     $map_embed_url = get_post_meta(
         $post->ID,
         'map_embed_url',
+        true
+    );
+
+    $map_embed_url_day1 = get_post_meta(
+        $post->ID,
+        'map_embed_url_day1',
+        true
+    );
+
+    $map_embed_url_day2 = get_post_meta(
+        $post->ID,
+        'map_embed_url_day2',
         true
     );
 
@@ -744,7 +775,7 @@ function tora_road_render_journal_meta_box($post) {
         <div class="tora-road-field">
 
             <label for="tora_map_embed_url">
-                Google Maps 埋め込みURL
+                Google Maps 埋め込みURL（旧・1枚用）
             </label>
 
             <input
@@ -756,7 +787,49 @@ function tora_road_render_journal_meta_box($post) {
             >
 
             <p class="tora-road-help">
-                iframe の src のURLだけを入力します。
+                既存記事用です。iframe の src のURLだけを入力します。
+            </p>
+
+        </div>
+
+
+        <div class="tora-road-field">
+
+            <label for="tora_map_embed_url_day1">
+                Google Maps 埋め込みURL（1日目）
+            </label>
+
+            <input
+                type="url"
+                id="tora_map_embed_url_day1"
+                name="tora_map_embed_url_day1"
+                value="<?php echo esc_attr($map_embed_url_day1); ?>"
+                placeholder="https://www.google.com/maps/embed?pb=..."
+            >
+
+            <p class="tora-road-help">
+                1日目ルートの iframe の src のURLだけを入力します。
+            </p>
+
+        </div>
+
+
+        <div class="tora-road-field">
+
+            <label for="tora_map_embed_url_day2">
+                Google Maps 埋め込みURL（2日目）
+            </label>
+
+            <input
+                type="url"
+                id="tora_map_embed_url_day2"
+                name="tora_map_embed_url_day2"
+                value="<?php echo esc_attr($map_embed_url_day2); ?>"
+                placeholder="https://www.google.com/maps/embed?pb=..."
+            >
+
+            <p class="tora-road-help">
+                2日目ルートの iframe の src のURLだけを入力します。
             </p>
 
         </div>
@@ -1075,17 +1148,87 @@ add_action('save_post_post', function ($post_id) {
     /**
      * MAP
      */
+
     if (isset($_POST['tora_map_embed_url'])) {
 
-        update_post_meta(
-            $post_id,
-            'map_embed_url',
-            esc_url_raw(
-                wp_unslash(
-                    $_POST['tora_map_embed_url']
-                )
+        $map_embed_url = esc_url_raw(
+            wp_unslash(
+                $_POST['tora_map_embed_url']
             )
         );
+
+        if ($map_embed_url === '') {
+
+            delete_post_meta(
+                $post_id,
+                'map_embed_url'
+            );
+
+        } else {
+
+            update_post_meta(
+                $post_id,
+                'map_embed_url',
+                $map_embed_url
+            );
+
+        }
+
+    }
+
+
+    if (isset($_POST['tora_map_embed_url_day1'])) {
+
+        $map_embed_url_day1 = esc_url_raw(
+            wp_unslash(
+                $_POST['tora_map_embed_url_day1']
+            )
+        );
+
+        if ($map_embed_url_day1 === '') {
+
+            delete_post_meta(
+                $post_id,
+                'map_embed_url_day1'
+            );
+
+        } else {
+
+            update_post_meta(
+                $post_id,
+                'map_embed_url_day1',
+                $map_embed_url_day1
+            );
+
+        }
+
+    }
+
+
+    if (isset($_POST['tora_map_embed_url_day2'])) {
+
+        $map_embed_url_day2 = esc_url_raw(
+            wp_unslash(
+                $_POST['tora_map_embed_url_day2']
+            )
+        );
+
+        if ($map_embed_url_day2 === '') {
+
+            delete_post_meta(
+                $post_id,
+                'map_embed_url_day2'
+            );
+
+        } else {
+
+            update_post_meta(
+                $post_id,
+                'map_embed_url_day2',
+                $map_embed_url_day2
+            );
+
+        }
 
     }
 
