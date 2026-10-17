@@ -69,6 +69,13 @@ export default function SiteHeader() {
           </Link>
 
           <Link
+            href="/contact"
+            className="transition hover:text-black"
+          >
+            CONTACT
+          </Link>
+
+          <Link
             href="/search"
             className="transition hover:text-black"
           >

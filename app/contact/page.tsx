@@ -6,6 +6,7 @@ export default function ContactPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
+  const [website, setWebsite] = useState("");
 
   const [submitted, setSubmitted] = useState(false);
   const [sending, setSending] = useState(false);
@@ -34,6 +35,7 @@ export default function ContactPage() {
           name,
           email,
           message,
+          website,
         }),
       });
 
@@ -48,6 +50,7 @@ export default function ContactPage() {
       setName("");
       setEmail("");
       setMessage("");
+      setWebsite("");
     } catch (err) {
       console.error(err);
 
@@ -79,11 +82,7 @@ export default function ContactPage() {
         padding: "56px 20px 80px",
       }}
     >
-      <div
-        style={{
-          marginBottom: "32px",
-        }}
-      >
+      <div style={{ marginBottom: "32px" }}>
         <p
           style={{
             margin: 0,
@@ -230,6 +229,27 @@ export default function ContactPage() {
           />
         </div>
 
+        <div
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            left: "-9999px",
+            width: "1px",
+            height: "1px",
+            overflow: "hidden",
+          }}
+        >
+          <label htmlFor="website">Website</label>
+          <input
+            id="website"
+            type="text"
+            tabIndex={-1}
+            autoComplete="off"
+            value={website}
+            onChange={(event) => setWebsite(event.target.value)}
+          />
+        </div>
+
         <button
           type="submit"
           disabled={sending}
@@ -243,7 +263,6 @@ export default function ContactPage() {
             cursor: sending ? "not-allowed" : "pointer",
             backgroundColor: sending ? "#9ca3af" : "#111827",
             color: "#ffffff",
-            transition: "opacity 0.2s",
           }}
         >
           {sending ? "送信中..." : "送信する"}
