@@ -57,6 +57,7 @@ function stripHtml(html: string) {
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
     .replace(/\s+/g, " ")
+    .replace(/\s*\[&hellip;\]\s*/g, "…")
     .trim();
 }
 

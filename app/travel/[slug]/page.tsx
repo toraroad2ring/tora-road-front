@@ -37,6 +37,8 @@ type Post = {
     transport_type?: string;
     transport_detail?: string;
     map_embed_url?: string;
+
+    revisit_rating?: number;
   };
 
   _embedded?: {
@@ -69,6 +71,7 @@ function stripHtml(html: string) {
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
     .replace(/\s+/g, " ")
+    .replace(/&hellip;/g, "…")
     .trim();
 }
 
@@ -111,6 +114,14 @@ function getTransportLabel(type?: string) {
     default:
       return "-";
   }
+}
+
+function getRevisitRating(rating?: number) {
+  if (!rating || rating < 1 || rating > 5) {
+    return "-";
+  }
+
+  return `${"★".repeat(rating)}${"☆".repeat(5 - rating)}`;
 }
 
 async function getPostBySlug(
@@ -353,7 +364,7 @@ export default async function TravelPostPage({
               )}
             </div>
 
-            <div className="p-6 sm:col-span-2">
+            <div className="border-b border-black/10 p-6 sm:col-span-2">
               <p className="text-[10px] font-bold tracking-[0.25em] text-neutral-400">
                 EVENT / PURPOSE
               </p>
@@ -361,6 +372,24 @@ export default async function TravelPostPage({
               <p className="mt-3 text-xl font-bold">
                 {post.meta?.event || "-"}
               </p>
+            </div>
+
+            <div className="p-6 sm:col-span-2">
+              <p className="text-[10px] font-bold tracking-[0.25em] text-neutral-400">
+                REVISIT
+              </p>
+
+              <div className="mt-3 flex flex-wrap items-center gap-4">
+                <p className="text-xl font-bold">
+                  また行きたい度
+                </p>
+
+                <p className="text-2xl tracking-[0.08em]">
+                  {getRevisitRating(
+                    post.meta?.revisit_rating
+                  )}
+                </p>
+              </div>
             </div>
           </div>
         </section>

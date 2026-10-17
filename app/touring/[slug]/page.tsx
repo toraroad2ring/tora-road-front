@@ -45,6 +45,8 @@ type Post = {
     map_embed_url?: string;
     map_embed_url_day1?: string;
     map_embed_url_day2?: string;
+
+    revisit_rating?: number;
   };
 
   _embedded?: {
@@ -84,6 +86,14 @@ function getCategory(post: Post) {
   return category?.name || "TOURING";
 }
 
+function getRevisitRating(rating?: number) {
+  if (!rating || rating < 1 || rating > 5) {
+    return "-";
+  }
+
+  return `${"★".repeat(rating)}${"☆".repeat(5 - rating)}`;
+}
+
 function stripHtml(html: string) {
   return html
     .replace(/<[^>]*>/g, "")
@@ -98,6 +108,7 @@ function stripHtml(html: string) {
     .replace(/&#8220;/g, "“")
     .replace(/&#8221;/g, "”")
     .replace(/\s+/g, " ")
+    .replace(/&hellip;/g, "…")
     .trim();
 }
 
@@ -359,6 +370,24 @@ export default async function TouringPostPage({
               <p className="mt-3 text-xl font-bold">
                 {post.meta?.food || "-"}
               </p>
+            </div>
+
+            <div className="border-t border-black/10 p-6 sm:col-span-2">
+              <p className="text-[10px] font-bold tracking-[0.25em] text-neutral-400">
+                REVISIT
+              </p>
+
+              <div className="mt-3 flex flex-wrap items-center gap-4">
+                <p className="text-xl font-bold">
+                  また行きたい度
+                </p>
+
+                <p className="text-2xl tracking-[0.08em]">
+                  {getRevisitRating(
+                    post.meta?.revisit_rating
+                  )}
+                </p>
+              </div>
             </div>
 
           </div>
