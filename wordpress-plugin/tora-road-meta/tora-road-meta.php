@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Tora Road Meta
  * Description: Tora Roadの記事・旅行記・ツーリング向け宿泊施設データを管理します。
- * Version: 4.0.4
+ * Version: 4.0.5
  */
 
 
@@ -129,6 +129,12 @@ add_action('init', function () {
         'show_in_rest' => true,
         'single' => true,
         'type' => 'boolean',
+    ]);
+
+    register_post_meta('post', 'revisit_rating', [
+        'show_in_rest' => true,
+        'single' => true,
+        'type' => 'integer',
     ]);
 
 });
@@ -372,6 +378,12 @@ function tora_road_render_journal_meta_box($post) {
     $visited = get_post_meta(
         $post->ID,
         'visited',
+        true
+    );
+
+    $revisit_rating = get_post_meta(
+        $post->ID,
+        'revisit_rating',
         true
     );
 
@@ -837,6 +849,66 @@ function tora_road_render_journal_meta_box($post) {
 
         <div class="tora-road-field">
 
+            <label for="tora_revisit_rating">
+                また行きたい度
+            </label>
+
+            <select
+                id="tora_revisit_rating"
+                name="tora_revisit_rating"
+            >
+                <option
+                    value=""
+                    <?php selected($revisit_rating, ''); ?>
+                >
+                    未設定
+                </option>
+
+                <option
+                    value="1"
+                    <?php selected((string) $revisit_rating, '1'); ?>
+                >
+                    ★☆☆☆☆
+                </option>
+
+                <option
+                    value="2"
+                    <?php selected((string) $revisit_rating, '2'); ?>
+                >
+                    ★★☆☆☆
+                </option>
+
+                <option
+                    value="3"
+                    <?php selected((string) $revisit_rating, '3'); ?>
+                >
+                    ★★★☆☆
+                </option>
+
+                <option
+                    value="4"
+                    <?php selected((string) $revisit_rating, '4'); ?>
+                >
+                    ★★★★☆
+                </option>
+
+                <option
+                    value="5"
+                    <?php selected((string) $revisit_rating, '5'); ?>
+                >
+                    ★★★★★
+                </option>
+            </select>
+
+            <p class="tora-road-help">
+                その場所・ルートに、また行きたいと思う度合いを5段階で設定します。
+            </p>
+
+        </div>
+
+
+        <div class="tora-road-field">
+
             <label>
 
                 <input
@@ -1226,6 +1298,40 @@ add_action('save_post_post', function ($post_id) {
                 $post_id,
                 'map_embed_url_day2',
                 $map_embed_url_day2
+            );
+
+        }
+
+    }
+
+
+    /**
+     * REVISIT RATING
+     */
+    if (isset($_POST['tora_revisit_rating'])) {
+
+        $revisit_rating = absint(
+            wp_unslash(
+                $_POST['tora_revisit_rating']
+            )
+        );
+
+        if (
+            $revisit_rating >= 1 &&
+            $revisit_rating <= 5
+        ) {
+
+            update_post_meta(
+                $post_id,
+                'revisit_rating',
+                $revisit_rating
+            );
+
+        } else {
+
+            delete_post_meta(
+                $post_id,
+                'revisit_rating'
             );
 
         }
